@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RptDataSource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Name="PMDS">
+  <ConnectionProperties>
+    <Extension>SQL</Extension>
+    <ConnectString>Data Source=.;Initial Catalog=PM</ConnectString>
+  </ConnectionProperties>
+  <DataSourceID>fd5b369d-6f5a-49d1-a9b9-fde87e9936eb</DataSourceID>
+</RptDataSource>

@@ -1,0 +1,467 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner" xmlns:cl="http://schemas.microsoft.com/sqlserver/reporting/2010/01/componentdefinition" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2010/01/reportdefinition">
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="PMDS">
+      <DataSourceReference>PMDS</DataSourceReference>
+      <rd:SecurityType>None</rd:SecurityType>
+      <rd:DataSourceID>5856e4ae-57d6-4b1f-baac-349caa617d8c</rd:DataSourceID>
+    </DataSource>
+  </DataSources>
+  <DataSets>
+    <DataSet Name="LabelOfScreenList">
+      <Query>
+        <DataSourceName>PMDS</DataSourceName>
+        <QueryParameters>
+          <QueryParameter Name="@LANG">
+            <Value>=Parameters!LANG.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name="@SCREEN_ID">
+            <Value>=Parameters!SCREEN_ID.Value</Value>
+          </QueryParameter>
+        </QueryParameters>
+        <CommandText>--指定レポートのラベル項目名一覧
+SELECT
+ SL.CONTROL_ID,
+ CASE @LANG
+   WHEN 2 THEN D.ITEM_DESC2
+   WHEN 3 THEN D.ITEM_DESC3
+   WHEN 4 THEN D.ITEM_DESC4
+   ELSE D.ITEM_DESC1
+ END AS ITEM_DESC
+FROM SCREEN_LABEL_MASTER SL, DICTIONARY_MASTER D
+ WHERE 1 = 1
+   AND SL.STD_ITEM = D.STD_ITEM
+   AND SL.SCREEN_ID = @SCREEN_ID
+ORDER BY SL.CONTROL_ID</CommandText>
+      </Query>
+      <Fields>
+        <Field Name="CONTROL_ID">
+          <DataField>CONTROL_ID</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="ITEM_DESC">
+          <DataField>ITEM_DESC</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+      </Fields>
+    </DataSet>
+    <DataSet Name="Languages">
+      <Query>
+        <DataSourceName>PMDS</DataSourceName>
+        <CommandText>SELECT KEY02, DATA_CHAR from SYSTEM_PARAMETER WHERE KEY01='LANG' ORDER BY KEY02</CommandText>
+      </Query>
+      <Fields>
+        <Field Name="KEY02">
+          <DataField>KEY02</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="DATA_CHAR">
+          <DataField>DATA_CHAR</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+      </Fields>
+    </DataSet>
+    <DataSet Name="MfgPartCollectingList">
+      <Query>
+        <DataSourceName>PMDS</DataSourceName>
+        <QueryParameters>
+          <QueryParameter Name="@DEMAND_NO">
+            <Value>=Parameters!DEMAND_NO.Value</Value>
+          </QueryParameter>
+        </QueryParameters>
+        <CommandText>SELECT
+		D.DEMAND_NO,
+		D.PART_SEQ,
+		isnull(A.alloc_type,0) ALLOC_TYPE,
+		CASE isnull(A.alloc_type,0) 
+			WHEN 0 THEN 'A:' 
+			WHEN 1 THEN 'B:' 
+			WHEN 2 THEN 'C:'
+			ELSE '' END SUM_ALLOC_SYMBOL,
+		CASE isnull(A.alloc_type,0) 
+			WHEN 0 THEN ISNULL(WIP0.WHS_ALLOC_QTY,0)
+			WHEN 1 THEN ISNULL(WIP1.WS_ALLOC_QTY,0) 
+			WHEN 2 THEN ISNULL(WIP2.PLAN_ALLOC_QTY,0)
+			ELSE 0 END SUM_ALLOC_QTY,
+		A.LOT_NO,
+		A.ALLOC_QTY Detail_ALLOC_QTY
+FROM DEMAND D 
+LEFT JOIN (	SELECT DEMAND_NO, SUM(ALLOC_QTY) WHS_ALLOC_QTY
+				FROM WIP_ALLOC
+				WHERE ALLOC_STATUS = 0
+				AND DEMAND_NO = F_DEMAND_NO
+				AND SCH_FLAG IN (1)
+				GROUP BY DEMAND_NO)	WIP0
+		ON D.DEMAND_NO = WIP0.DEMAND_NO
+LEFT JOIN (	SELECT DEMAND_NO, SUM(CASE WHEN ALLOC_STATUS = 20 THEN ACT_QTY ELSE ALLOC_QTY END) WS_ALLOC_QTY 
+				FROM WIP_ALLOC
+				WHERE ALLOC_STATUS &lt;= 20
+				AND SCH_FLAG IN (0, 2)
+				GROUP BY DEMAND_NO)	WIP1
+		ON D.DEMAND_NO = WIP1.DEMAND_NO
+LEFT JOIN (	SELECT DEMAND_NO, SUM(ALLOC_QTY) PLAN_ALLOC_QTY
+				FROM WIP_ALLOC
+				WHERE ALLOC_STATUS = 0
+				AND DEMAND_NO&lt;&gt;F_DEMAND_NO
+				AND SCH_FLAG IN (1)
+				GROUP BY DEMAND_NO)	WIP2
+		ON D.DEMAND_NO = WIP2.DEMAND_NO
+LEFT join (
+		    SELECT 0 alloc_type,DEMAND_NO, LOT_NO, SUM(ALLOC_QTY) ALLOC_QTY
+				FROM WIP_ALLOC
+				WHERE ALLOC_STATUS = 0
+				AND DEMAND_NO = F_DEMAND_NO
+				AND SCH_FLAG IN (1)
+				GROUP BY DEMAND_NO, LOT_NO
+			UNION ALL
+			SELECT 1 alloc_type,DEMAND_NO, LOT_NO, SUM(CASE WHEN ALLOC_STATUS = 20 THEN ACT_QTY ELSE ALLOC_QTY END)	ALLOC_QTY 
+				FROM WIP_ALLOC
+				WHERE ALLOC_STATUS &lt;= 20
+				AND SCH_FLAG IN (0,2)
+				GROUP BY DEMAND_NO, LOT_NO
+			UNION ALL
+			SELECT 2 alloc_type,DEMAND_NO, LOT_NO, SUM(ALLOC_QTY) ALLOC_QTY
+				FROM WIP_ALLOC
+				WHERE ALLOC_STATUS = 0
+				AND DEMAND_NO &lt;&gt; F_DEMAND_NO
+				AND SCH_FLAG IN (1)
+				GROUP BY DEMAND_NO, LOT_NO
+	) A ON D.DEMAND_NO=A.DEMAND_NO
+WHERE 1=1
+  AND (D.SUB_GRP_CD = '' OR (D.SUB_GRP_CD &lt;&gt; '' AND D.SUB_ACTION_FLAG = 1))
+  AND  D.ITEM_TYPE &lt;&gt; '99'
+  AND D.DEMAND_NO = @DEMAND_NO
+ORDER BY D.DEMAND_NO, A.ALLOC_TYPE</CommandText>
+      </Query>
+      <Fields>
+        <Field Name="DEMAND_NO">
+          <DataField>DEMAND_NO</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="PART_SEQ">
+          <DataField>PART_SEQ</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="ALLOC_TYPE">
+          <DataField>ALLOC_TYPE</DataField>
+          <rd:TypeName>System.Int32</rd:TypeName>
+        </Field>
+        <Field Name="SUM_ALLOC_SYMBOL">
+          <DataField>SUM_ALLOC_SYMBOL</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="SUM_ALLOC_QTY">
+          <DataField>SUM_ALLOC_QTY</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="LOT_NO">
+          <DataField>LOT_NO</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Detail_ALLOC_QTY">
+          <DataField>Detail_ALLOC_QTY</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+      </Fields>
+    </DataSet>
+  </DataSets>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <ReportItems>
+          <Tablix Name="Tablix1">
+            <TablixBody>
+              <TablixColumns>
+                <TablixColumn>
+                  <Width>1.54994cm</Width>
+                </TablixColumn>
+                <TablixColumn>
+                  <Width>2.54994cm</Width>
+                </TablixColumn>
+                <TablixColumn>
+                  <Width>4.54994cm</Width>
+                </TablixColumn>
+                <TablixColumn>
+                  <Width>3.04994cm</Width>
+                </TablixColumn>
+              </TablixColumns>
+              <TablixRows>
+                <TablixRow>
+                  <Height>0.6cm</Height>
+                  <TablixCells>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox7">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>=Fields!SUM_ALLOC_SYMBOL.Value</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style />
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox7</rd:DefaultName>
+                          <Visibility>
+                            <Hidden>=Fields!DEMAND_NO.Value=Previous(Fields!DEMAND_NO.Value) AND Fields!ALLOC_TYPE.Value=Previous(Fields!ALLOC_TYPE.Value)</Hidden>
+                          </Visibility>
+                          <Style>
+                            <Border>
+                              <Style>None</Style>
+                            </Border>
+                            <PaddingLeft>5pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox10">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>=Fields!SUM_ALLOC_QTY.Value</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <Format>#,0.00;-#,0.00</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Right</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox10</rd:DefaultName>
+                          <Visibility>
+                            <Hidden>=Fields!DEMAND_NO.Value=Previous(Fields!DEMAND_NO.Value) AND Fields!ALLOC_TYPE.Value=Previous(Fields!ALLOC_TYPE.Value)</Hidden>
+                          </Visibility>
+                          <Style>
+                            <Border>
+                              <Style>None</Style>
+                            </Border>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>5pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox14">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>=Fields!LOT_NO.Value</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <Format>#,0.00;-#,0.00</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Left</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox14</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Style>None</Style>
+                            </Border>
+                            <BottomBorder>
+                              <Style>Dotted</Style>
+                            </BottomBorder>
+                            <PaddingLeft>5pt</PaddingLeft>
+                            <PaddingRight>5pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox95">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>=Fields!Detail_ALLOC_QTY.Value</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <Format>#,0.00;-#,0.00</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Right</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox95</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Style>None</Style>
+                            </Border>
+                            <BottomBorder>
+                              <Style>Dotted</Style>
+                            </BottomBorder>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>5pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                  </TablixCells>
+                </TablixRow>
+              </TablixRows>
+            </TablixBody>
+            <TablixColumnHierarchy>
+              <TablixMembers>
+                <TablixMember />
+                <TablixMember />
+                <TablixMember />
+                <TablixMember />
+              </TablixMembers>
+            </TablixColumnHierarchy>
+            <TablixRowHierarchy>
+              <TablixMembers>
+                <TablixMember>
+                  <Group Name="ALLOC_TYPE">
+                    <GroupExpressions>
+                      <GroupExpression>=Fields!ALLOC_TYPE.Value</GroupExpression>
+                    </GroupExpressions>
+                    <PageBreak>
+                      <BreakLocation>Between</BreakLocation>
+                    </PageBreak>
+                  </Group>
+                  <SortExpressions>
+                    <SortExpression>
+                      <Value>=Fields!ALLOC_TYPE.Value</Value>
+                    </SortExpression>
+                  </SortExpressions>
+                  <TablixMembers>
+                    <TablixMember>
+                      <Group Name="详细信息" />
+                      <TablixMembers>
+                        <TablixMember />
+                      </TablixMembers>
+                    </TablixMember>
+                  </TablixMembers>
+                </TablixMember>
+              </TablixMembers>
+            </TablixRowHierarchy>
+            <RepeatColumnHeaders>true</RepeatColumnHeaders>
+            <RepeatRowHeaders>true</RepeatRowHeaders>
+            <DataSetName>MfgPartCollectingList</DataSetName>
+            <Height>0.6cm</Height>
+            <Width>11.69976cm</Width>
+            <Style>
+              <Border>
+                <Style>None</Style>
+              </Border>
+            </Style>
+          </Tablix>
+        </ReportItems>
+        <Height>0.26924in</Height>
+        <Style />
+      </Body>
+      <Width>11.69976cm</Width>
+      <Page>
+        <PageHeight>29.7cm</PageHeight>
+        <PageWidth>21cm</PageWidth>
+        <LeftMargin>0.5cm</LeftMargin>
+        <RightMargin>0.5cm</RightMargin>
+        <TopMargin>0.5cm</TopMargin>
+        <BottomMargin>0.5cm</BottomMargin>
+        <ColumnSpacing>0.13cm</ColumnSpacing>
+        <Style />
+      </Page>
+    </ReportSection>
+  </ReportSections>
+  <ReportParameters>
+    <ReportParameter Name="LANG">
+      <DataType>Integer</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>1</Value>
+        </Values>
+      </DefaultValue>
+      <Prompt>言語</Prompt>
+      <ValidValues>
+        <DataSetReference>
+          <DataSetName>Languages</DataSetName>
+          <ValueField>KEY02</ValueField>
+          <LabelField>DATA_CHAR</LabelField>
+        </DataSetReference>
+      </ValidValues>
+    </ReportParameter>
+    <ReportParameter Name="SCREEN_ID">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <DefaultValue>
+        <Values>
+          <Value>MfgPartCollectingList_C_FM</Value>
+        </Values>
+      </DefaultValue>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>フォーム番号</Prompt>
+      <Hidden>true</Hidden>
+    </ReportParameter>
+    <ReportParameter Name="LABELS">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <DataSetReference>
+          <DataSetName>LabelOfScreenList</DataSetName>
+          <ValueField>CONTROL_ID</ValueField>
+        </DataSetReference>
+      </DefaultValue>
+      <Prompt>Labels</Prompt>
+      <Hidden>true</Hidden>
+      <ValidValues>
+        <DataSetReference>
+          <DataSetName>LabelOfScreenList</DataSetName>
+          <ValueField>CONTROL_ID</ValueField>
+          <LabelField>ITEM_DESC</LabelField>
+        </DataSetReference>
+      </ValidValues>
+      <MultiValue>true</MultiValue>
+    </ReportParameter>
+    <ReportParameter Name="DEMAND_NO">
+      <DataType>String</DataType>
+      <Prompt>所要№</Prompt>
+    </ReportParameter>
+  </ReportParameters>
+  <Code>Public Function GetLabel(P as Parameter, Label as String) as String
+    Dim i As Integer
+    For i = 0 to Ubound(P.Value)
+       If (P.Value(i) = Label) Then Return P.Label(i) 
+    Next i
+    Return Label
+End Function</Code>
+  <rd:ReportUnitType>Cm</rd:ReportUnitType>
+  <rd:ReportID>22f5ca9f-22c4-47d7-9be9-dfdfdcee88a0</rd:ReportID>
+</Report>

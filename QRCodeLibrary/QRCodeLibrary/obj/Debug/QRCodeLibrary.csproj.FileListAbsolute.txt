@@ -1,0 +1,9 @@
+G:\QRCodeLibrary\QRCodeLibrary\bin\Debug\QRCodeLibrary.dll
+G:\QRCodeLibrary\QRCodeLibrary\bin\Debug\QRCodeLibrary.pdb
+G:\QRCodeLibrary\QRCodeLibrary\obj\Debug\QRCodeLibrary.csprojResolveAssemblyReference.cache
+G:\QRCodeLibrary\QRCodeLibrary\obj\Debug\QRCodeLibrary.dll
+G:\QRCodeLibrary\QRCodeLibrary\obj\Debug\QRCodeLibrary.pdb
+D:\UBIQ_Dev\PM_SSRS\QRCodeLibrary\QRCodeLibrary\bin\Debug\QRCodeLibrary.dll
+D:\UBIQ_Dev\PM_SSRS\QRCodeLibrary\QRCodeLibrary\bin\Debug\QRCodeLibrary.pdb
+D:\UBIQ_Dev\PM_SSRS\QRCodeLibrary\QRCodeLibrary\obj\Debug\QRCodeLibrary.dll
+D:\UBIQ_Dev\PM_SSRS\QRCodeLibrary\QRCodeLibrary\obj\Debug\QRCodeLibrary.pdb

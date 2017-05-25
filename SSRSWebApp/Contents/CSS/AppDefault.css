@@ -1,0 +1,2100 @@
+﻿/*|------------------------------------------------------------------------------------------|*/
+/*|  プロジェクト名　：　ProductionMaster                                                    |*/
+/*|  機能名　　　　　：  スタイル設定 [初期値]				                                 |*/
+/*|  プログラムID  　：　                                   				                 |*/
+/*|------------------------------------------------------------------------------------------|*/
+/*|  [履歴]  　                                                                              |*/
+/*|  2007/01/10     Ubiq.Matsuno  　新規作成                                                 |*/
+/*|------------------------------------------------------------------------------------------|*/
+
+
+/*********************************
+	共通属性
+*********************************/
+/* BODY, INPUT, SPAN, SELECT {font-family:MS UI Gothic;  font-size:x-small}   */
+BODY, INPUT, SPAN, SELECT {font-family: Geneva, Arial, Helvetica, sans-serif;  font-size:12px}
+
+/* Web Label */
+/* 
+	入力項目の見出し 
+		fi_xx: 固定  i_xx: 変動
+*/
+
+/* SPAN.fi_mtitle   { height:21px; PADDING-TOP:3px; PADDING-LEFT:3px;  background-color:#3399CC; color:white; } */
+SPAN.fi_mtitle   { height:15px; 
+PADDING-TOP:3px; PADDING-LEFT:3px; z-index:102; } 
+SPAN.i_mtitle    { height:21px; PADDING-TOP:3px; PADDING-LEFT:3px; color:#444444; } 
+SPAN.i_mtitle_b    { height:21px; PADDING-TOP:3px; PADDING-LEFT:3px; color:#444444; font-weight:bold; z-index:102;}
+SPAN.i_mtitle_b2    { height:21px; PADDING-TOP:3px; PADDING-LEFT:3px; color:#444444; font-weight:bold; font-size:14px; z-index:102;}
+SPAN.i_mtitle2    { height:21px; PADDING-TOP:3px; PADDING-LEFT:3px; color:#E70000; font-weight:bold; z-index:102;}
+SPAN.i_mtitle_c  { height:21px; PADDING-TOP:3px; background-color:#3399CC; color:white; text-align:center; z-index:102;} 
+SPAN.i_mtitle_c2 { height:21px; PADDING-TOP:10px;  background-color:#3399CC; color:white; text-align:center; z-index:102;} 
+
+TD.i_mtitle { text-align:center; background-color:#3399CC; color:white;z-index:102;} 
+
+SPAN.i_mtitle_c3 { height:16px; PADDING-TOP:4px; background-color:#3399CC; color:white; text-align:center; z-index:102;} 
+
+/* 
+	表示項目の見出し 
+		fd_xx: 固定  d_xx: 変動
+*/
+SPAN.fd_mtitle_noborder { height:21px; PADDING-TOP:2px; PADDING-LEFT:3px; color:#3399CC;  text-align:right;} 
+SPAN.fd_mtitle   { height:21px; PADDING-TOP:2px; PADDING-LEFT:3px; background-color:white; color:#3399CC;  border:solid 1px #3399CC} 
+SPAN.fd_mtitle_c { height:21px; PADDING-TOP:2px ; background-color:white; color:#3399CC;  border:solid 1px #3399CC; text-align:center;} 
+SPAN.fd_mtitle_c2{ height:21px; PADDING-TOP:3px ; background-color:white; color:#3399CC;  border:solid 1px #3399CC; text-align:center;} 
+SPAN.fd_mtitle_r { height:21px; PADDING-TOP:2px ; background-color:white; color:#3399CC;  border:solid 1px #3399CC; text-align:center; text-align:right;} 
+
+SPAN.d_mtitle    { height:21px; PADDING-TOP:2px; PADDING-LEFT:3px; background-color:white; color:#3399CC;  border:solid 1px #3399CC} 
+SPAN.d_mtitle_c  { height:21px; PADDING-TOP:2px; background-color:white; color:#3399CC;  border:solid 1px #3399CC; text-align:center;} 
+SPAN.d_mtitle_c2 { height:21px; PADDING-TOP:3px; background-color:white; color:#3399CC;  border:solid 1px #3399CC; text-align:center;} 
+
+TD.d_mtitle { text-align:center;   background-color:white; color:#3399CC; } 
+
+/* 表示項目 */
+SPAN.d_label    { height:21px; PADDING-TOP:2px; PADDING-LEFT:3px; background-color:white; color:black;  border:solid 1px #3399CC} 
+SPAN.d_label_n  { height:21px; PADDING-TOP:2px; padding-right:3px;  background-color:white; color:black;  border:solid 1px #3399CC; text-align:right; } 
+SPAN.d_label_c  { height:21px; PADDING-TOP:2px; background-color:white; color:black;  border:solid 1px #3399CC; text-align:center; } 
+
+SPAN.d_label_noborder   { height:21px; PADDING-TOP:2px; background-color:white;PADDING-LEFT:3px; color:black;  border:none; } 
+SPAN.d_label_noborder_c { height:21px; PADDING-TOP:2px; background-color:white;color:black;  border:none ; text-align:center; } 
+
+INPUT.d_label_n { height:21px; PADDING-TOP:2px; padding-right:3px;  background-color:white; color:black;  border:solid 1px #3399CC; text-align:right; } 
+
+A.wnone_on     { text-decoration:none; width:100%; height:100%; color:White   ; background-color: #FF4500  ;  text-align:right; PADDING-TOP:5px;  padding-right:5px; }
+A.wnone_off    { text-decoration:none; width:100%; height:100%; color:#3399cc ; background-color:  #F0F8FF;  text-align:left ; PADDING-TOP:5px;  PADDING-LEFT:5px;}
+
+A.wnone_on2    { text-decoration:none; width:100%; height:100%; color:White   ; background-color:#FF4500  ;  text-align:right; PADDING-TOP:5px; PADDING-right:5px;   }
+A.wnone_off2   { text-decoration:none; width:100%; height:100%; color:#3399cc ; background-color:#F0F8FF      ;  text-align:left;  PADDING-TOP:5px; PADDING-LEFT:5px;   }
+A.wnone_disable{ text-decoration:none; width:100%; height:100%; color:#3399cc ; background-color:Transparent;  text-align:left;  PADDING-TOP:5px; PADDING-LEFT:5px;   }
+
+A.wnone_on3     { text-decoration:none; width:100%; height:100%; color:White   ; background-color:#FF4500;  text-align:right; PADDING-TOP:2px;  padding-right:5px;}
+A.wnone_off3    { text-decoration:none; width:100%; height:100%; color:#3399cc ; background-color:#F0F8FF;  text-align:left ; PADDING-TOP:2px;  PADDING-LEFT :5px;}
+
+A.wnone_pon     { text-decoration:none; width:100%; height:100%; color:White   ; background-color:#FF8C00 ;  text-align:right; PADDING-TOP:3px;  padding-right:5px; }
+A.wnone_poff    { text-decoration:none; width:100%; height:100%; color:#3399cc ; background-color:#FAF0E6  ;  text-align:left ; PADDING-TOP:3px;  PADDING-LEFT:5px;}
+A.wnone_pdisable{ text-decoration:none; width:100%; height:100%; color:#3399cc ; background-color:Transparent;  text-align:left;  PADDING-TOP:5px; PADDING-LEFT:5px;   }
+
+A.link       {color:blue; text-decoration:none; }
+
+/* 日付の入力項目 */
+INPUT.date { text-align: center;} 
+INPUT.i_mtitle_c  { height:18px; PADDING-TOP:2px; background-color:#3399CC; color:white; text-align:center; } 
+INPUT.d_mtitle_c  { height:18px; PADDING-TOP:2px; background-color:white;   color:#3399CC;  border:solid 1px #3399CC; text-align:center;} 
+
+SPAN.title_lbl    { text-align:left; }
+
+/* 表示キー以外項目 */
+INPUT.d_label    { height:17px; PADDING-TOP:2px; PADDING-LEFT:3px; background-color:white; color:black;  border:solid 1px #3399CC} 
+INPUT.text_disp_right   { height:18px; PADDING-TOP:2px; padding-right:3px; background-color:white; color:black; border:solid 1px #3399CC; text-align:right;z-index:103;} 
+INPUT.text_disp_center  { height:18px; PADDING-TOP:2px; padding-right:3px; background-color:white; color:black; border:solid 1px #3399CC; text-align:center;z-index:103;} 
+INPUT.text_disp_left    { height:18px; PADDING-TOP:2px; padding-right:3px; background-color:white; color:black; border:solid 1px #3399CC; text-align:left;z-index:103;} 
+/* 表示キー項目 */
+INPUT.text_disp_right_key   { height:18px; PADDING-TOP:2px; padding-right:3px; background-color:white; color:black; border:solid 1px #3399CC; text-align:right;z-index:103;} 
+INPUT.text_disp_center_key  { height:18px; PADDING-TOP:2px; padding-right:3px; background-color:white; color:black; border:solid 1px #3399CC; text-align:center;z-index:103;} 
+INPUT.text_disp_left_key    { height:18px; PADDING-TOP:2px; padding-right:3px; background-color:white; color:black; border:solid 1px #3399CC; text-align:left;z-index:103;} 
+
+/* 入力キー以外項目 */
+INPUT.text_input_right  { height:18px; PADDING-TOP:2px; padding-right:3px; background-color:white; color:black; border:inset 1px; text-align:right; ime-mode:active; z-index:103;} 
+INPUT.text_input_center { height:18px; PADDING-TOP:2px; padding-right:3px; background-color:white; color:black; border:inset 1px; text-align:center; ime-mode:active; z-index:103;} 
+INPUT.text_input_left   { height:18px; PADDING-TOP:2px; padding-right:3px; background-color:white; color:black; border:inset 1px; text-align:left; ime-mode:active; z-index:103;} 
+/* 入力キー項目 */
+INPUT.text_input_right_key  { height:18px; PADDING-TOP:2px; padding-right:3px; background-color:white; color:black; border:inset 1px; text-align:right; ime-mode:disabled;z-index:103;} 
+INPUT.text_input_center_key { height:18px; PADDING-TOP:2px; padding-right:3px; background-color:white; color:black; border:inset 1px; text-align:center; ime-mode:disabled;z-index:103;} 
+INPUT.text_input_left_key   { height:18px; PADDING-TOP:2px; padding-right:3px; background-color:white; color:black; border:inset 1px; text-align:left; ime-mode:disabled;z-index:103;} 
+
+
+/*--------------------------------*/
+/* table layout set 2010/4/6 */
+.GridTable
+{
+ table-layout:fixed;
+}
+
+/*--------------------------------*/
+
+
+/*---------------------------------*/
+/* 固定ラベル                      */
+/*---------------------------------*/
+/* - タイトル - */
+.TitleLabel
+{
+	/*font-family:MS UI Gothic;*/ /** Del 2013.05.07 Ubiq-Sai **/
+	font-family:Geneva, Arial, Helvetica, sans-serif;   /** Add 2013.05.07 Ubiq-Sai **/  
+	font-size:21px;
+	font-weight:bold;
+	color:#E70000
+}
+/* - 大見出し - */
+.LargeLabel
+{
+	/*font-family:MS UI Gothic;*/ /** Del 2013.05.07 Ubiq-Sai **/
+	font-family:Geneva, Arial, Helvetica, sans-serif;   /** Add 2013.05.07 Ubiq-Sai **/  
+	font-size:24px
+}
+/* - 中見出し - */
+.MiddleLabel
+{
+	/*font-family:MS UI Gothic;*/ /** Del 2013.05.07 Ubiq-Sai **/
+	font-family:Geneva, Arial, Helvetica, sans-serif;   /** Add 2013.05.07 Ubiq-Sai **/  
+	font-size:18px
+}
+/* - 小見出し - */
+.SmallLabel
+{
+	/*font-family:MS UI Gothic;*/ /** Del 2013.05.07 Ubiq-Sai **/
+	font-family:Geneva, Arial, Helvetica, sans-serif;   /** Add 2013.05.07 Ubiq-Sai **/  
+	font-size:14px
+}
+
+/* - ﾒﾆｭｰ見出し - */
+.MenuLabel
+{
+	/*font-family:MS UI Gothic;*/ /** Del 2013.05.07 Ubiq-Sai **/
+	font-family:Geneva, Arial, Helvetica, sans-serif;   /** Add 2013.05.07 Ubiq-Sai **/  
+	font-size:14px;
+	font-weight:bold;
+}
+
+/* - 検索画面ﾀｲﾄﾙ - */
+.SrchLabel {
+	/*font-family:MS UI Gothic;*/ /** Del 2013.05.07 Ubiq-Sai **/
+	font-family:Geneva, Arial, Helvetica, sans-serif;   /** Add 2013.05.07 Ubiq-Sai **/  
+	font-size:18px;
+	font-weight:bold;
+	color:#E70000
+}
+
+/* - 検索画面件数 - */
+.CountLabel
+{
+	/*font-family:MS UI Gothic;*/ /** Del 2013.05.07 Ubiq-Sai **/
+	font-family:Geneva, Arial, Helvetica, sans-serif;   /** Add 2013.05.07 Ubiq-Sai **/  
+	font-size:13px;
+	font-weight:bold;
+	color:#E70000;
+	vertical-align:bottom;
+}
+
+
+
+/*---------------------------------*/
+/* データラベル                    */
+/*---------------------------------*/
+/*---------------------------------*/
+/* テキスト                        */
+/*---------------------------------*/
+.NumberTextBox100
+{
+	background-image:url(../Image/new/keta100dec.gif) 
+}
+.DisplayLabel
+{
+	text-align:left;
+    padding-left:5px;
+    padding-top:2px;
+	color:Black; 
+	background-color:#EEEEEE;
+    border-style:solid;
+	border-color:Gray;
+	border-width:1px;
+	height:18px
+}
+.InputText
+{
+	border-style:solid;
+	border-color:Black;
+	border-width:1px;
+	height:18px
+}
+
+/*---------------------------------*/
+/* リンクボタン                    */
+/*---------------------------------*/
+.LinkButton {
+	/*font-family:MS UI Gothic;*/ /** Del 2013.05.07 Ubiq-Sai **/
+	font-family:Geneva, Arial, Helvetica, sans-serif;   /** Add 2013.05.07 Ubiq-Sai **/  
+	font-size:14px;
+	font-weight:normal;
+	color:Black;
+}
+
+/*---------------------------------*/
+/* 日付テキストのカレンダ          */
+/*---------------------------------*/
+.MyCalendar .ajax__calendar_container {
+    border:1px solid #646464;
+    background-color:White;
+    color: Blue;
+    z-index: 1000;
+}
+.MyCalendar .ajax__calendar_other .ajax__calendar_day,
+.MyCalendar .ajax__calendar_other .ajax__calendar_year {
+    color: black;
+}
+.MyCalendar .ajax__calendar_hover .ajax__calendar_day,
+.MyCalendar .ajax__calendar_hover .ajax__calendar_month,
+.MyCalendar .ajax__calendar_hover .ajax__calendar_year {
+    color: black;
+}
+.MyCalendar .ajax__calendar_active .ajax__calendar_day,
+.MyCalendar .ajax__calendar_active .ajax__calendar_month,
+.MyCalendar .ajax__calendar_active .ajax__calendar_year {
+    color: black;
+    font-weight:bold;
+}
+
+/*---------------------------------*/
+/* GridView                        */
+/*---------------------------------*/
+.GVHeader {
+	 background-color:#000084;
+	 color:White;	/*CHANGE BLACK to WHITE*/
+	 /*font-family:MS UI Gothic;*/ /** Del 2013.05.07 Ubiq-Sai **/
+	 font-family:Geneva, Arial, Helvetica, sans-serif;   /** Add 2013.05.07 Ubiq-Sai **/  
+	 font-size:12px;
+	 font-weight:bold;
+	 text-align:center;
+	 height:16px;
+}
+
+.GVPager {
+	 background-color:Gray;
+	 color:White;
+	 /*font-family:HGSｺﾞｼｯｸM;*/ /** Del 2013.05.07 Ubiq-Sai **/
+	 font-family:Geneva, Arial, Helvetica, sans-serif;   /** Add 2013.05.07 Ubiq-Sai **/  
+	 font-size:12px;
+	 font-weight:bold;
+	 /*text-align:left;*/
+	 text-align:center;
+	 height:16px;
+}
+
+.GVPagerMobile span
+ {
+     text-decoration: none;
+     color:white;
+     background-color:Black;
+     padding-left: 4px;
+     padding-right: 4px; 
+ }
+ .GVPagerMobile a
+ {
+     text-decoration: none;
+     padding-left: 4px;
+     padding-right: 4px; 
+ }
+ .GVPagerMobile a:hover
+ {
+     color:White;
+     background-color:Gray;
+     padding-left: 4px;
+     padding-right: 4px; 
+ }
+
+.GVSelectedRow {
+	 background-color:Green;
+	 color:White;
+  	 /*font-family:MS UI Gothic;*/ /** Del 2013.05.07 Ubiq-Sai **/
+	 font-family:Geneva, Arial, Helvetica, sans-serif;   /** Add 2013.05.07 Ubiq-Sai **/  
+	 font-size:12px;
+	 font-weight:bold;
+}
+
+.GVRow {
+	 background-color:#EEEEEE;
+	 color:Black;
+	 /*font-family:MS UI Gothic;*/ /** Del 2013.05.07 Ubiq-Sai **/
+	 font-family:Geneva, Arial, Helvetica, sans-serif;   /** Add 2013.05.07 Ubiq-Sai **/  
+	 font-size:12px;
+	 height:16px;
+}
+
+.GVAlternatingRow {
+	 background-color:#DCDCDC;
+	 color:Black;
+	 /*font-family:MS UI Gothic;*/ /** Del 2013.05.07 Ubiq-Sai **/
+	 font-family:Geneva, Arial, Helvetica, sans-serif;   /** Add 2013.05.07 Ubiq-Sai **/  
+	 font-size:12px;
+	 height:16px;
+}
+
+.GVFooter {
+	 background-color:#EEEEEE;
+	 color:Black;
+}
+
+/*********************************/
+/*  品目コード	150				 */
+/*********************************/
+.GVCellText_Item 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;
+	
+}
+.GVCellLbl_Item
+{
+	Width:150px;
+}
+
+/*********************************/
+/*  品目名称	200				 */
+/*********************************/
+.GVCellText_ItemDesc 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;	
+}
+.GVCellLbl_ItemDesc
+{
+	Width:200px;
+}
+
+/*********************************/
+/*  仕入先コード	100			 */
+/*********************************/
+.GVCellText_Vendor 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;
+	
+}
+.GVCellLbl_Vendor
+{
+	Width:100px;
+}
+/*********************************/
+/*  仕入先名称	150				 */
+/*********************************/
+.GVCellText_VendorName 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;
+	
+}
+.GVCellLbl_VendorName
+{
+	Width:150px;
+}
+
+/*********************************/
+/*顧客コード	100				 */
+/*********************************/
+.GVCellText_Cust			
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;
+	
+}
+.GVCellLbl_Cust
+{
+	Width:100px;
+}
+/*********************************/
+/*顧客名	150               	 */
+/*********************************/
+
+.GVCellText_CustName		
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;
+	
+}
+
+.GVCellLbl_CustName
+{
+	Width:150px;
+}
+
+/*********************************/
+/*顧客品目コード	100        	 */
+/*********************************/
+
+.GVCellText_Custm_Item	
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;
+	
+}
+
+.GVCellLbl_Custm_Item
+{
+	Width:100px;
+}
+
+/*********************************/
+/*数量	80                    	 */
+/*********************************/
+
+.GVCellText_Qty	/*ADD 20090326 UBIQ-LIU*/
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;
+	text-align:right;
+	
+}
+
+.GVCellLbl_Qty
+{
+	Width:80px;
+}
+
+/*********************************/
+/*単位	30                    	 */
+/*********************************/
+
+.GVCellLbl_Umsr
+{
+	Width:30px;
+	text-align:center;/*ADD UBIQ-LIU 2010/04/07*/
+}
+
+/*********************************/
+/*単価	80                    	 */
+/*********************************/
+
+.GVCellLbl_Proc
+{
+	Width:80px;
+}
+
+/*********************************/
+/*金額	80                    	 */
+/*********************************/
+
+.GVCellText_Amt	/*ADD 20090326 UBIQ-LIU*/
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;
+}
+
+.GVCellLbl_Amt
+{
+	Width:80px;
+}
+
+/*********************************/
+/*通貨	30                     	 */
+/*********************************/
+
+.GVCellLbl_Cur
+{
+	Width:30px;
+}
+
+/*********************************/
+/*日付	70                     	 */
+/*********************************/
+.GVCellText_Date   /*ADD 20090326 UBIQ-LIU*/
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;	
+	text-align:center;
+	
+}
+
+.GVCellLbl_Date
+{
+	Width:70px;
+}
+
+/*********************************/
+/*優先№	50                   */
+/*********************************/
+
+.GVCellLbl_Pty_No
+{
+	Width:50px;
+}
+/*********************************/
+/*有効開始	110                  */
+/*********************************/
+
+.GVCellLbl_Beg_Eff_Date
+{
+	Width:110px;
+}
+/*********************************/
+/*有効終了	90                   */
+/*********************************/
+
+.GVCellLbl_End_Eff_Date
+{
+	Width:90px;
+}
+/*********************************/
+/*倉庫コード	50             	 */
+/*********************************/
+
+.GVCellText_Whs			
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;	
+}
+
+.GVCellLbl_Whs
+{
+	Width:50px;
+}
+
+/*********************************/
+/*倉庫名称	100               	 */
+/*********************************/
+
+.GVCellText_WhsDesc		
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;
+	
+}
+
+.GVCellLbl_WhsDesc
+{
+	Width:100px;
+}
+
+
+/*********************************/
+/*作業区コード	100           	 */
+/*********************************/
+
+.GVCellText_Ws			
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;	
+}
+
+.GVCellLbl_Ws
+{
+	Width:100px;
+}
+
+/*********************************/
+/*作業区名	100              	 */
+/*********************************/
+
+.GVCellText_WsDesc		
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	
+	Width:95%;	
+}
+
+.GVCellLbl_WsDesc
+{
+	Width:100px;
+}
+
+/*********************************/
+/*出庫倉庫	100              	 */
+/*ADD BY UBIQ-SUO 2010/09/18     */
+/*********************************/
+
+.GVCellText_WhsCd		
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	
+	Width:95%;	
+}
+
+.GVCellLbl_WhsCd
+{
+	Width:100px;
+}
+
+/*********************************/
+/*アラーム	200              	 */
+/*********************************/
+
+.GVCellText_Alarm		
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;	
+}
+
+.GVCellLbl_Alarm
+{
+	Width:200px;
+}
+
+/*********************************/
+/*発注担当者	70          	 */
+/*********************************/
+
+.GVCellText_Buyer		
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	
+	Width:95%;	
+}
+
+.GVCellLbl_Buyer
+{
+	Width:70px;
+}
+
+/*********************************/
+/*受注番号	110               	 */
+/*********************************/
+.GVCellText_Order	/*ADD 20090326 UBIQ-Chen*/
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	
+	Width:95%;	
+}
+
+.GVCellLbl_Order
+{
+	Width:110px;
+}
+
+/*********************************/
+/*顧客注文番号	110           	 */
+/*********************************/
+.GVCellText_CustOrder	/*ADD 20090326 UBIQ-liu*/
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	
+	Width:95%;	
+}
+
+.GVCellLbl_CustOrder
+{
+	Width:110px;
+}
+
+/*********************************/
+/*発注№（オーダー№）	80    	 */
+/*********************************/
+
+.GVCellLbl_Pono
+{
+	Width:80px;
+}
+
+/*********************************/
+/*振替№	100                	 */
+/*********************************/
+
+.GVCellLbl_XferNo
+{
+	Width:100px;
+}
+
+/*********************************/
+/*分納回数	50                 	 */
+/*********************************/
+
+.GVCellLbl_DelvCnt
+{
+	Width:50px;
+}
+
+/*********************************/
+/*在庫ロケーション	85           */
+/*********************************/
+.GVCellText_Location		
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	
+	Width:95%;	
+}
+.GVCellLbl_Location
+{
+	Width:85px;
+}
+
+/*********************************/
+/*検査コード	90             	 */
+/*********************************/
+.GVCellText_Insp		
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;	
+}
+.GVCellLbl_Insp
+{
+	Width:90px;
+}
+
+/*********************************/
+/*不良理由	100               	 */
+/*********************************/
+
+.GVCellText_XferText		
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	
+	Width:95%;		
+}
+
+.GVCellLbl_XferText
+{
+	Width:100px;
+}
+/*********************************/
+/*不良理由(一括検収処理)	70   */
+/*********************************/
+
+.GVCellLbl_XferText_Insp
+{
+	Width:70px;
+}
+
+/*********************************/
+/*ロット番号	110            	 */
+/*********************************/
+.GVCellText_LotNo		
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	
+	Width:95%;	
+}
+
+.GVCellLbl_LotNo
+{
+	Width:110px;
+}
+
+/*********************************/
+/*伝票番号	100               	 */
+/*********************************/
+
+.GVCellLbl_IssueNo
+{
+	Width:100px;
+}
+
+/*********************************/
+/*作業指示№	80            	 */
+/*********************************/
+.GVCellText_JoｂOrder
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	
+	Width:95%;	
+}
+.GVCellLbl_JoｂOrder
+{
+	Width:100px;
+}
+
+/*********************************/
+/*品目区分	70                	 */
+/*********************************/
+
+.GVCellLbl_ItemType
+{
+	Width:70px;
+}
+
+/*****************************************/
+/*				CHINA ADD				 */
+/*****************************************/
+
+/******************* 品目Master Use **********************/
+
+/*********************************/
+/*  仕入先名称(品目Master)	95	 */
+/*********************************/
+.GVCellText_VendorName_Item 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	
+	Width:95%;	
+}
+.GVCellLbl_VendorName_Item
+{
+	Width:95px;
+}
+/*********************************/
+/*工程名(品目Master)	90		 */
+/*********************************/
+
+.GVCellText_ProcessName_Item
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	
+	Width:95%;	
+}
+/*********************************/
+/*  仕入先コード(品目Master)	95			 */
+/*********************************/
+
+.GVCellLbl_Vendor_Item 
+{
+	Width:95px;
+}
+/*********************************/
+/*倉庫名称(品目Master 保税)110   */
+/*********************************/
+.GVCellText_WhsDesc_Disb		
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	
+	Width:95%;	
+}
+
+.GVCellLbl_WhsDesc_Disb
+{
+	Width:110px;
+}
+/*********************************/
+/*倉庫名称（品目Master）	80               	 */
+/*********************************/
+
+.GVCellText_WhsDesc_Item		
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	
+	Width:95%;	
+}
+
+.GVCellLbl_WhsDesc_Item
+{
+	Width:80px;
+}
+/*********************************/
+/*発注担当者(品目Master)	60          	 */
+/*********************************/
+
+.GVCellLbl_Buyer_Item
+{
+	Width:60px;
+}
+/*********************************/
+/*作業区名(品目Master)	90              	 */
+/*********************************/
+
+.GVCellText_WsDesc_Item		
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;	
+}
+
+.GVCellLbl_WsDesc_Item	
+{
+	Width:90px;
+}
+
+/***************** Search Use ********************/
+
+/*********************************/
+/*  コード列	200		(Search) */
+/*********************************/
+.GVCellText_SrcCode
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	
+	Width:95%;	
+}
+.GVCellLbl_SrcCode
+{
+	Width:200px;
+}
+/*********************************/
+/*  名称列	300			(Search) */
+/*********************************/
+.GVCellText_SrcName
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;	
+	
+}
+.GVCellLbl_SrcName
+{
+	Width:300px;
+}
+
+/*********************************/
+/*  名称列	400			(Search) */
+/*********************************/
+.GVCellText_SrcNameJOC
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;	
+	
+}
+.GVCellLbl_SrcNameJOC
+{
+	Width:400px;
+}
+
+/*********************************/
+/*  顧客コード列	150	(Search) */
+/*********************************/
+.GVCellLbl_CustSrcCd
+{
+	Width:150px;
+}
+
+/*********************************/
+/*  顧客サブコード	150	(Search) */
+/*********************************/
+.GVCellLbl_CustSrcSubCd
+{
+	Width:150px;
+}
+
+/*********************************/
+/*  製番区分	100	(Search)	 */
+/*********************************/
+.GVCellLbl_SrcJocType
+{
+	Width:100px;
+}
+
+/*************************************************/
+/*  システムパラメータヘッダ名称列	150	(Search) */
+/*************************************************/
+.GVCellText_SrcSysName
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:145px;	
+}
+.GVCellLbl_SrcSysName
+{
+	Width:150px;
+}
+
+/***************** Other Use  ********************/
+
+/*********************************/
+/*手配区分	80                	 */
+/*********************************/
+
+.GVCellLbl_PoType
+{
+	Width:80px;
+}
+
+/*********************************/
+/*工程名	150					 */
+/*********************************/
+
+.GVCellText_ProcessName
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+
+.GVCellLbl_ProcessName
+{
+	Width:150px;
+}
+
+/*********************************/
+/*工程コード	80               */
+/*********************************/
+
+.GVCellText_ProcessCD
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+.GVCellLbl_ProcessCD
+{
+	Width:80px;
+}
+
+/*********************************/
+/*ｴﾝﾄﾘｰLT	80					 */
+/*********************************/
+
+.GVCellLbl_EntryLT
+{
+	Width:80px;
+}
+
+/*********************************/
+/*構成ダミー	80			     */
+/*********************************/
+
+.GVCellLbl_Dummy
+{
+	Width:80px;
+}
+
+/*********************************/
+/*半製品展開	80			     */
+/*********************************/
+
+.GVCellLbl_StopExpl
+{
+	Width:80px;
+}
+
+/*********************************/
+/*構成数	80					 */
+/*********************************/
+
+.GVCellLbl_UsageDec
+{
+	Width:80px;
+}
+
+/*********************************/
+/*不良率	80					 */
+/*********************************/
+
+.GVCellLbl_DefectPct
+{
+	Width:80px;
+}
+
+/*********************************/
+/*代替グループ	80			     */
+/*********************************/
+
+.GVCellLbl_SubGrpCD
+{
+	Width:80px;
+}
+
+/*********************************/
+/*代替代表	80					 */
+/*********************************/
+
+.GVCellLbl_ActionFlag
+{
+	Width:80px;
+}
+
+/*********************************/
+/*  ユーザーID	100				 */
+/*********************************/
+.GVCellLbl_UserId
+{
+	Width:100px;
+}
+
+/*********************************/
+/*  ユーザー名称	200			 */
+/*********************************/
+.GVCellText_UserName
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+.GVCellLbl_UserName
+{
+	Width:300px;
+}
+
+/*********************************/
+/*ﾒﾆｭｰｸﾞﾙｰﾌﾟ名称	300          */
+/*********************************/
+.GVCellText_Menu_Grp_Desc		
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+
+.GVCellLbl_Menu_Grp_Desc
+{
+	Width:300px;
+}
+
+/*********************************/
+/*  ロール  	100				 */
+/*********************************/
+.GVCellLbl_Role
+{
+	Width:100px;
+}
+
+/*********************************/
+/*ロール名称	300              */
+/*********************************/
+.GVCellText_Role_Desc	
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+
+.GVCellLbl_Role_Desc
+{
+	Width:300px;
+}
+/*********************************/
+/*  メニュー項目  	200			 */
+/*********************************/
+.GVCellLbl_Program_Id
+{
+	Width:200px;
+}
+
+/*********************************/
+/*  メニュー項目名	400			 */
+/*********************************/
+.GVCellText_Prog_Desc	
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+
+.GVCellLbl_Prog_Desc
+{
+	Width:300px;
+}
+/*********************************/
+/*  ﾒﾆｭｰｸﾞﾙｰﾌﾟ	250  */
+/*********************************/
+.GVCellText_Menu_Grp	
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+
+.GVCellLbl_Menu_Grp
+{
+	Width:200px;
+}
+
+/*********************************/
+/*  標準項目ID	150				 */
+/*********************************/
+.GVCellText_StdItem
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;	
+}
+
+.GVCellLbl_StdItem
+{
+	Width:150px;
+}
+/*********************************/
+/*  標準項目名	150				 */
+/*********************************/
+.GVCellText_StdItemName
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;	
+}
+
+.GVCellLbl_StdItemName
+{
+	Width:150px;
+}
+
+/*********************************/
+/*  受注数量	100				 */
+/*********************************/
+.GVCellLbl_SoQty
+{
+	Width:100px;
+}
+
+/*********************************/
+/*  出荷倉庫	100				 */
+/*********************************/
+.GVCellLbl_ShipWhs
+{
+	Width:100px;
+}
+/*********************************/
+/*  検査LT	60				 */
+/*********************************/
+.GVCellLbl_Insp_Lt
+{
+	Width:60px;
+}
+/*********************************/
+/*  納入先行	60				 */
+/*********************************/
+.GVCellLbl_Plant_Lt
+{
+	Width:60px;
+}
+
+/*********************************/
+/*  予定工数	60				 */
+/*********************************/
+.GVCellLbl_WorkHour
+{
+	Width:60px;
+}
+/*********************************/
+/*明細数	80					 */
+/*********************************/
+
+.GVCellLbl_NumOfDtls
+{
+	Width:80px;
+}
+
+/*********************************/
+/*支給区分	90					 */
+/*********************************/
+
+.GVCellLbl_Supply_Type
+{
+	Width:90px;
+}
+/*********************************/
+/*納入LT	60					 */
+/*********************************/
+
+.GVCellLbl_Delv_Lt
+{
+	Width:60px;
+}
+/*********************************/
+/*最小発注	85					 */
+/*********************************/
+
+.GVCellLbl_Min_Pur_Qty
+{
+	Width:85px;
+}
+/*********************************/
+/*発注ﾛｯﾄ	85					 */
+/*********************************/
+
+.GVCellLbl_Pur_Lot_Size
+{
+	Width:85px;
+}
+/*********************************/
+/*仮	40						 */
+/*********************************/
+
+.GVCellLbl_Tentative_Cur
+{
+	Width:50px;
+}
+
+/*********************************/
+/*仮単価	110					 */
+/*********************************/
+
+.GVCellLbl_Tentative_Prc
+{
+	Width:110px;
+}
+/*********************************/
+/*標準単価	80					 */
+/*********************************/
+
+.GVCellLbl_Std_Prc
+{
+	Width:80px;
+}
+
+/*********************************/
+/*引当	80						 */
+/*********************************/
+
+.GVCellText_AllocFlag   /*ADD 20100505 UBIQ-wanghui*/
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;	
+	text-align:right;
+	
+}
+
+.GVCellLbl_AllocFlag
+{
+	Width:80px;
+}
+/*********************************/
+/*工順	60						 */
+/*********************************/
+
+.GVCellLbl_Routine_Seq
+{
+	Width:60px;
+}
+/*********************************/
+/*工程	60						 */
+/*********************************/
+
+.GVCellLbl_Process_Cd
+{
+	Width:60px;
+}
+
+
+/*************************************************************/
+/*LengQty(フリー倉庫在庫) 進捗照会-子部品明細 	100px		 */
+/*************************************************************/
+
+.GVCellText_LenQty  /*ADD 20090326 UBIQ-LIU 数字标题过长的用该CSS*/
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	text-align:right;   /*Add 2015.11.27 Ubiq-Sai */
+
+	Width:95%;		
+}
+
+
+.GVCellLbl_LenQty
+{
+	Width:100px;
+}
+/*********************************/
+/*LT計算	60		 */
+/*********************************/
+
+.GVCellLbl_Lt_Type
+{
+	Width:60px;
+}
+/*********************************/
+/*作業LT	60		 */
+/*********************************/
+
+.GVCellLbl_Mfg_Lt
+{
+	Width:60px;
+}
+/*********************************/
+/*作業LT	70		 */
+/*********************************/
+
+.GVCellLbl_Daily_Prod_Qty
+{
+	Width:70px;
+}
+/*********************************/
+/*作業時間	80		 */
+/*********************************/
+
+.GVCellLbl_Unit_Time
+{
+	Width:80px;
+}
+
+/*********************************/
+/*	管理部門	80				 */
+/*********************************/
+
+.GVCellLbl_Business
+{
+	Width:80px;
+}
+
+/*********************************/
+/*	キー  80  業務アラーム照会	 */
+/*********************************/
+.GVCellText_Key
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+
+.GVCellLbl_Key
+{
+	Width:80px;
+}
+
+/*********************************/
+/*  メッセージコード	100 	 */
+/*********************************/
+.GVCellText_MsgCode
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+
+.GVCellLbl_MsgCode
+{
+	Width:100px;
+}
+/*********************************/
+/*  ｱﾗｰﾑ内容	200				 */
+/*********************************/
+.GVCellText_MsgDesc
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+
+.GVCellLbl_MsgDesc
+{
+	Width:200px;
+}
+
+/*********************************/
+/*	時刻	60					 */
+/*********************************/
+
+.GVCellLbl_Time
+{
+	Width:60px;
+}
+
+
+/*********************************/
+/*  画面名	100					 */
+/*********************************/
+.GVCellText_ItemName
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+
+.GVCellLbl_ItemName
+{
+	Width:100px;
+}
+/*********************************/
+/*通貨コード	80                     	 */
+/*********************************/
+
+.GVCellLbl_Cur_Cd
+{
+	Width:80px;
+}
+/*********************************/
+/*支給単価	80                     	 */
+/*********************************/
+
+.GVCellLbl_Supply_Prc
+{
+	Width:80px;
+}
+/*********************************/
+/*	みなし出庫区分	80           */
+/*********************************/
+
+.GVCellLbl_AutoDisbType
+{
+	Width:80px;
+}
+/*********************************/
+/*計画	80                     	 */
+/*********************************/
+
+.GVCellText_SchId
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+.GVCellLbl_SchId
+{
+	Width:80px;
+}
+/*********************************/
+/*分納回数	60                     	 */
+/*********************************/
+.GVCellText_Partial_Delv
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+.GVCellLbl_Partial_Delv
+{
+	Width:60px;
+}
+
+/*********************************/
+/*受入数量	60                    	 */
+/*********************************/
+
+.GVCellLbl_Recv_Qty
+{
+	Width:60px;
+}
+
+/*********************************/
+/*検収ステータス	100          */
+/*********************************/
+
+.GVCellLbl_Insp_Status
+{
+	Width:100px;
+}
+
+/*********************************/
+/*	分回	50				     */
+/*********************************/
+
+.GVCellLbl_DelvComplCnt
+{
+	Width:50px;
+}
+
+/*********************************/
+/*	アラーム	(Mfg Alarm)80	 */
+/*********************************/
+
+.GVCellLbl_AlarmType
+{
+	Width:80px;
+}
+
+/*********************************/
+/*分完区分	60				 */
+/*********************************/
+
+.GVCellLbl_Share_Type
+{
+	Width:60px;
+}
+
+/*********************************/
+/*発注No+明細No	100				 */
+/*********************************/
+
+.GVCellLbl_PoLineNo
+{
+	Width:100px;
+}
+
+.GVCellLbl_ProcessName_Item
+{
+	Width:100px;
+}
+/*********************************/
+/*製番	80                     	 */
+/*********************************/
+.GVCellText_Joc
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;		
+}
+.GVCellLbl_Joc
+{
+	Width:80px;
+}
+.GVCellLbl_Joc_Split_No
+{
+	Width:100px;
+}
+
+/*********************************/
+/*倉庫名称(一括受入処理)	85   */
+/*********************************/
+.GVCellLbl_WhsDesc_Rcv
+{
+	Width:85px;
+}
+
+/*********************************/
+/*ステータス	100				 */
+/*********************************/
+
+.GVCellLbl_Status
+{
+	Width:100px;
+}
+/*********************************/
+/*  仕入先名称(受人)	105		 */
+/*********************************/
+.GVCellText_VendorName_Rcv 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+.GVCellLbl_VendorName_Rcv 
+{
+	Width:105px;
+}
+/*********************************/
+/*発注数量/受入済数100			 */
+/*********************************/
+
+.GVCellLbl_Poqty_Recvqty
+{
+	Width:100px;
+}
+
+/*********************************/
+/*	内外	80					 */
+/*********************************/
+
+.GVCellLbl_ScFlag
+{
+	Width:55px;
+}
+/*********************************/
+/*	計画担当	60				 */
+/*********************************/
+
+.GVCellText_SchName
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;		
+}
+.GVCellLbl_Sch_Name
+{
+	Width:80px;
+}
+
+/*********************************/
+/*	出荷指示No	90				 */
+/*********************************/
+
+.GVCellLbl_ShipNo
+{
+	Width:90px;
+}
+
+/*********************************/
+/*	出荷実績入力	90			 */
+/*********************************/
+
+.GVCellLbl_ShipActQty
+{
+	Width:90px;
+}
+/*********************************/
+/*	出荷倉庫	(Ord) 80	     */
+/*********************************/
+
+.GVCellLbl_ShipWhs
+{
+	Width:80px;
+}
+/*********************************/
+/*最終棚卸抽出年月	200	*/
+/*********************************/
+
+.GVCellLbl_Cnt_Date
+{
+	Width:200px;
+}
+
+/*********************************/
+/*ページNo	80	*/
+/*********************************/
+
+.GVCellLbl_Page_No
+{
+	Width:80px;
+}
+
+/*********************************/
+/*  入出庫理由	90				 */
+/*********************************/
+
+.GVCellText_XferText
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+.GVCellLbl_XferText
+{
+	Width:90px;
+}
+
+/*********************************/
+/*  入出庫元先	150				 */
+/*********************************/
+
+.GVCellText_RcvDisb 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+.GVCellLbl_RcvDisb 
+{
+	Width:150px;
+}
+
+/*********************************/
+/*明細No	50          		 */
+/*********************************/
+
+.GVCellLbl_SlipNo
+{
+	Width:50px;
+}
+
+/*********************************/
+/*振替№	90          		 */
+/*********************************/
+
+.GVCellLbl_XferNo
+{
+	Width:90px;
+}
+
+/*********************************/
+/*振替ｽﾃｰﾀｽ	100          		 */
+/*********************************/
+
+.GVCellLbl_XferStatus
+{
+	Width:100px;
+}
+
+/*********************************/
+/*返品No"80          		 */
+/*********************************/
+
+.GVCellLbl_Return_No
+{
+	Width:80px;
+}
+/*********************************/
+/*项目的Code 70         		 */
+/*********************************/
+.GVCellText_ProjectCode 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+.GVCellLbl_ProjectCode
+{
+	Width:70px;
+}
+
+/*********************************/
+/*ﾒﾆｭｰ番号 50          		 */
+/*********************************/
+
+.GVCellLbl_Menu_No
+{
+	Width:70px;
+}
+/*********************************/
+/*備考 300		         		 */
+/*********************************/
+.GVCellText_PoNote 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+.GVCellLbl_PoNote 
+{
+	Width:300px;
+}
+
+/*********************************/
+/*	分割回数	60				 */
+/*********************************/
+
+.GVCellLbl_PartialDelvComplCnt
+{
+	Width:60px;
+}
+/*********************************/
+/*作業者 100		         		 */
+/*********************************/
+.GVCellText_ReqUserId 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+.GVCellLbl_ReqUserId 
+{
+	Width:100px;
+}
+
+/*********************************/
+/*科目コード 80         		 */
+/*********************************/
+.GVCellText_SubjectCode 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+.GVCellLbl_SubjectCode
+{
+	Width:80px;
+}
+/*********************************/
+/*科目名称 100         		 */
+/*********************************/
+.GVCellText_SubjectDesc 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;		
+}
+.GVCellLbl_SubjectDesc
+{
+	Width:100px;
+}
+/*********************************/
+/*配賦基準 80         		 */
+/*********************************/
+.GVCellText_AllocType 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+.GVCellLbl_AllocType
+{
+	Width:80px;
+}
+/*********************************/
+/*部門コード 80         		 */
+/*********************************/
+.GVCellText_DeptCode 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+.GVCellLbl_DeptCode
+{
+	Width:80px;
+}
+/*********************************/
+/*部門名称 100         		 */
+/*********************************/
+.GVCellText_DeptDesc 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+.GVCellLbl_DeptDesc
+{
+	Width:100px;
+}
+/*********************************/
+/*共通費配賦金額 150         		 */
+/*********************************/
+.GVCellLbl_Alloc_Amt 
+{
+	Width:150px;
+	
+}
+/*********************************/
+/*配賦率 100         		 */
+/*********************************/
+.GVCellLbl_Rate 
+{
+	Width:100px;
+	
+}
+/*********************************/
+/*対象直接費 120         		 */
+/*********************************/
+.GVCellLbl_Ddltype 
+{
+	Width:200px;
+	
+}
+/*********************************/
+/*標準稼働時間(分) 100         	 */
+/*********************************/
+.GVCellText_StdWorkingHour 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+
+	Width:95%;		
+}
+.GVCellLbl_StdWorkingHour
+{
+	Width:100px;
+}
+/*********************************/
+/*稼働時間明細(分) 200         	 */
+/*********************************/
+.GVCellText_TimeDesc 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	Width:95%;		
+}
+.GVCellLbl_TimeDesc
+{
+	Width:200px;
+}
+/*********************************/
+/*完成仕掛 40         		 */
+/*********************************/
+.GVCellLbl_CW_TYPE
+{
+	Width:40px;	
+}
+/*****  ADD UBIQ-LIU 2010/03/23  *****/
+/*********************************/
+/*GRIDVIEW TEXTBOX Width       	 */
+/*********************************/
+.GVCellText_Left 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	text-align:left;
+	Width:95%;		
+}
+.GVCellText_Right 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	text-align:right;
+	Width:95%;		
+}
+.GVCellText_Center 
+{
+	background-color:transparent;
+	border-style:none;
+	border-width:0px;
+	text-align:center;
+	Width:95%;		
+}
+.GVCell_HIDE
+{
+	display:none;
+}
+/* add 2010/06/17 */
+.GVCellLbl_Po_No
+{
+	Width:110px;
+}
