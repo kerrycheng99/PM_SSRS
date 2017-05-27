@@ -1,7 +1,7 @@
 ﻿--MfgManJOPlanRpt_マニュアル作業計画表SQL
 DECLARE @DATE_TYPE INT = 1    --発行日付単位分類: 0.週単位 1.月単位
 DECLARE @CALENDAR_DATE INT = 20170501
-DECLARE @TTL_WEEK INT = 227  --648
+DECLARE @TTL_WEEK INT = 648  --227
 DECLARE @SCH_ID VARCHAR(10) = ''
 DECLARE @WS_CD VARCHAR(10) = ''
 
@@ -42,6 +42,7 @@ CREATE INDEX TMP_CAL_IDX2 ON #TMP_CAL (DATE_ID)
 IF OBJECT_ID('tempdb..#TMP_JOB') IS NOT NULL DROP TABLE #TMP_JOB
 SELECT * INTO #TMP_JOB FROM (
   SELECT
+  (CASE @DATE_TYPE WHEN 0 THEN 'WEEK' ELSE 'MONTH' END) DATE_TYPE_TXT,
   PD.SCH_ID,
   S_SCH_NAME.DATA_CHAR SCH_NAME,
   PD.ITEM_NO,
@@ -200,6 +201,7 @@ SELECT * INTO #TMP_JOB FROM (
   --//開始週(月)以前のデータ抽出
   UNION ALL
   SELECT
+  (CASE @DATE_TYPE WHEN 0 THEN 'WEEK' ELSE 'MONTH' END) DATE_TYPE_TXT,
   PD.SCH_ID,
   S_SCH_NAME.DATA_CHAR SCH_NAME,
   PD.ITEM_NO,
@@ -218,7 +220,7 @@ SELECT * INTO #TMP_JOB FROM (
       AND ID.WHS_CD = PD.DISB_WHS
       AND (ID.WS_CD = IW.WS_CD OR ID.WS_CD='')) INV_BAL,--// 現在庫
   S_UMSR_NAME.DATA_CHAR UMSR_NAME,
-  MAX(ISNULL(T.DATE_ID,0)) DATE_ID,
+  CAST(1 AS INT) DATE_ID,
   (CASE @DATE_TYPE WHEN 0 THEN (@TTL_WEEK - 1) ELSE
         YEAR(DATEADD(DAY,-1,CONVERT(DATETIME,CONVERT(VARCHAR(8),@CALENDAR_DATE))))*100
         + MONTH(DATEADD(DAY,-1,CONVERT(DATETIME,CONVERT(VARCHAR(8),@CALENDAR_DATE))))
@@ -332,7 +334,6 @@ SELECT * INTO #TMP_JOB FROM (
   --          AND PD.WS_CD = ( CASE WHEN ID.WS_CD = '' THEN PD.WS_CD ELSE ID.WS_CD END )
   LEFT JOIN (SELECT * FROM SYSTEM_PARAMETER WHERE KEY01 = 'SCH_ID' ) S_SCH_NAME ON PD.SCH_ID = S_SCH_NAME.KEY02 
   LEFT JOIN (SELECT * FROM SYSTEM_PARAMETER WHERE KEY01 = 'ITEM_UMSR' ) S_UMSR_NAME ON PD.ITEM_UMSR = S_UMSR_NAME.KEY02 
-  LEFT JOIN #TMP_CAL T ON T.DATE_WEEK_CYM=(CASE @DATE_TYPE WHEN 0 THEN CM.TTL_WEEK ELSE CM.CALENDAR_CYM END)
   WHERE    1=1
   AND ISNULL(IW.SC_FLAG,1) = 0
   AND (PD.SCH_ID = @SCH_ID or @SCH_ID = '')
@@ -373,16 +374,26 @@ DECLARE @job_qty_val NVARCHAR(MAX)
 DECLARE @sql_str NVARCHAR(MAX)
 
 --月（週）単位のカレンダの列名（二の統合）
-SELECT @dat_num_col = ISNULL(@dat_num_col + ',', '') + QUOTENAME('DAT_'+CAST(DATE_ID AS VARCHAR(8)))
-      ,@dat_min_col = ISNULL(@dat_min_col + ',', '') + QUOTENAME('MIN_'+CAST(DATE_ID AS VARCHAR(8)))
-      ,@dat_max_col = ISNULL(@dat_max_col + ',', '') + QUOTENAME('MAX_'+CAST(DATE_ID AS VARCHAR(8)))
-      ,@pln_qty_col = ISNULL(@pln_qty_col + ',', '') + QUOTENAME('PLN_'+CAST(DATE_ID AS VARCHAR(8)))
-      ,@ord_qty_col = ISNULL(@ord_qty_col + ',', '') + QUOTENAME('ORD_'+CAST(DATE_ID AS VARCHAR(8)))
-      ,@job_qty_col = ISNULL(@job_qty_col + ',', '') + QUOTENAME('JOB_'+CAST(DATE_ID AS VARCHAR(8)))
-      ,@pln_qty_val = ISNULL(@pln_qty_val + ',', '') + 'ISNULL(' + QUOTENAME('PLN_'+CAST(DATE_ID AS VARCHAR(8))) + ',0) AS ' + QUOTENAME('PLN_'+CAST(DATE_ID AS VARCHAR(8)))
-      ,@ord_qty_val = ISNULL(@ord_qty_val + ',', '') + 'ISNULL(' + QUOTENAME('ORD_'+CAST(DATE_ID AS VARCHAR(8))) + ',0) AS ' + QUOTENAME('ORD_'+CAST(DATE_ID AS VARCHAR(8)))
-      ,@job_qty_val = ISNULL(@job_qty_val + ',', '') + 'ISNULL(' + QUOTENAME('JOB_'+CAST(DATE_ID AS VARCHAR(8))) + ',0) AS ' + QUOTENAME('JOB_'+CAST(DATE_ID AS VARCHAR(8)))
-FROM #TMP_CAL
+--SELECT @dat_num_col = ISNULL(@dat_num_col + ',', '') + QUOTENAME('DAT_'+CAST(DATE_ID AS VARCHAR(8)))
+--      ,@dat_min_col = ISNULL(@dat_min_col + ',', '') + QUOTENAME('MIN_'+CAST(DATE_ID AS VARCHAR(8)))
+--      ,@dat_max_col = ISNULL(@dat_max_col + ',', '') + QUOTENAME('MAX_'+CAST(DATE_ID AS VARCHAR(8)))
+--      ,@pln_qty_col = ISNULL(@pln_qty_col + ',', '') + QUOTENAME('PLN_'+CAST(DATE_ID AS VARCHAR(8)))
+--      ,@ord_qty_col = ISNULL(@ord_qty_col + ',', '') + QUOTENAME('ORD_'+CAST(DATE_ID AS VARCHAR(8)))
+--      ,@job_qty_col = ISNULL(@job_qty_col + ',', '') + QUOTENAME('JOB_'+CAST(DATE_ID AS VARCHAR(8)))
+--      ,@pln_qty_val = ISNULL(@pln_qty_val + ',', '') + 'ISNULL(' + QUOTENAME('PLN_'+CAST(DATE_ID AS VARCHAR(8))) + ',0) AS ' + QUOTENAME('PLN_'+CAST(DATE_ID AS VARCHAR(8)))
+--      ,@ord_qty_val = ISNULL(@ord_qty_val + ',', '') + 'ISNULL(' + QUOTENAME('ORD_'+CAST(DATE_ID AS VARCHAR(8))) + ',0) AS ' + QUOTENAME('ORD_'+CAST(DATE_ID AS VARCHAR(8)))
+--      ,@job_qty_val = ISNULL(@job_qty_val + ',', '') + 'ISNULL(' + QUOTENAME('JOB_'+CAST(DATE_ID AS VARCHAR(8))) + ',0) AS ' + QUOTENAME('JOB_'+CAST(DATE_ID AS VARCHAR(8)))
+--FROM #TMP_CAL
+--SSRS固定の表現
+SET @dat_num_col = 'DAT_1, DAT_2, DAT_3, DAT_4, DAT_5, DAT_6, DAT_7, DAT_8'
+SET @dat_min_col = 'MIN_1, MIN_2, MIN_3, MIN_4, MIN_5, MIN_6, MIN_7, MIN_8'
+SET @dat_max_col = 'MAX_1, MAX_2, MAX_3, MAX_4, MAX_5, MAX_6, MAX_7, MAX_8'
+SET @pln_qty_col = 'PLN_1, PLN_2, PLN_3, PLN_4, PLN_5, PLN_6, PLN_7, PLN_8'
+SET @ord_qty_col = 'ORD_1, ORD_2, ORD_3, ORD_4, ORD_5, ORD_6, ORD_7, ORD_8'
+SET @job_qty_col = 'JOB_1, JOB_2, JOB_3, JOB_4, JOB_5, JOB_6, JOB_7, JOB_8'
+SET @pln_qty_val = 'ISNULL(PLN_1,0) PLN_1, ISNULL(PLN_2,0) PLN_2, ISNULL(PLN_3,0) PLN_3, ISNULL(PLN_4,0) PLN_4, ISNULL(PLN_5,0) PLN_5, ISNULL(PLN_6,0) PLN_6, ISNULL(PLN_7,0) PLN_7, ISNULL(PLN_8,0) PLN_8'
+SET @ord_qty_val = 'ISNULL(ORD_1,0) ORD_1, ISNULL(ORD_2,0) ORD_2, ISNULL(ORD_3,0) ORD_3, ISNULL(ORD_4,0) ORD_4, ISNULL(ORD_5,0) ORD_5, ISNULL(ORD_6,0) ORD_6, ISNULL(ORD_7,0) ORD_7, ISNULL(ORD_8,0) ORD_8'
+SET @job_qty_val = 'ISNULL(JOB_1,0) JOB_1, ISNULL(JOB_2,0) JOB_2, ISNULL(JOB_3,0) JOB_3, ISNULL(JOB_4,0) JOB_4, ISNULL(JOB_5,0) JOB_5, ISNULL(JOB_6,0) JOB_6, ISNULL(JOB_7,0) JOB_7, ISNULL(JOB_8,0) JOB_8'
 
 --PRINT (@dat_num_col)
 --PRINT (@dat_min_col)
@@ -396,7 +407,8 @@ FROM #TMP_CAL
 
 --SQLの合成,ライン変換列の処理[PIVOT]
 SET @sql_str = '
-    SELECT  PVT.SCH_ID, PVT.SCH_NAME, PVT.ITEM_NO,  PVT.ITEM_DESC, PVT.WS_CD, PVT.WS_DESC,
+    SELECT  PVT.DATE_TYPE_TXT,
+            PVT.SCH_ID, PVT.SCH_NAME, PVT.ITEM_NO,  PVT.ITEM_DESC, PVT.WS_CD, PVT.WS_DESC,
             PVT.MFG_LT, PVT.DISB_WHS, PVT.WHS_DESC, PVT.INV_BAL,   PVT.UMSR_NAME, ' + '
             ' + @pln_qty_val + ', ' + '
             ' + @ord_qty_val + ', ' + '
@@ -405,7 +417,7 @@ SET @sql_str = '
             ' + @dat_min_col + ', ' + '
             ' + @dat_max_col + '
     FROM (         --PLAN_QTY 所要数量
-        SELECT ''PLN_'' + CAST(DATE_ID AS VARCHAR(8)) AS DATE_ID_COL, 
+        SELECT ''PLN_'' + CAST(DATE_ID AS VARCHAR(8)) AS DATE_ID_COL, DATE_TYPE_TXT,
                SCH_ID, SCH_NAME, ITEM_NO, ITEM_DESC, WS_CD, WS_DESC, 
                MFG_LT, DISB_WHS, WHS_DESC, INV_BAL, UMSR_NAME, PLAN_QTY FROM #TMP_JOB
         ) PLN
@@ -416,7 +428,7 @@ SET @sql_str = '
     CROSS APPLY (  --ORDER_QTY 計画数量
         SELECT * 
         FROM ( 
-              SELECT ''ORD_'' + CAST(DATE_ID AS VARCHAR(8)) AS DATE_ID_COL, 
+              SELECT ''ORD_'' + CAST(DATE_ID AS VARCHAR(8)) AS DATE_ID_COL, DATE_TYPE_TXT,
                      SCH_ID, SCH_NAME, ITEM_NO, ITEM_DESC, WS_CD, WS_DESC, 
                      MFG_LT, DISB_WHS, WHS_DESC, INV_BAL, UMSR_NAME, ORDER_QTY FROM #TMP_JOB
              ) ORD
@@ -432,7 +444,7 @@ SET @sql_str = '
     CROSS APPLY (  --JOB_ORDER_QTY 指示残数量
         SELECT * 
         FROM (
-              SELECT ''JOB_'' + CAST(DATE_ID AS VARCHAR(8)) AS DATE_ID_COL, 
+              SELECT ''JOB_'' + CAST(DATE_ID AS VARCHAR(8)) AS DATE_ID_COL, DATE_TYPE_TXT,
                      SCH_ID, SCH_NAME, ITEM_NO, ITEM_DESC, WS_CD, WS_DESC, 
                      MFG_LT, DISB_WHS, WHS_DESC, INV_BAL, UMSR_NAME, JOB_ORDER_QTY FROM #TMP_JOB
              ) JOB
