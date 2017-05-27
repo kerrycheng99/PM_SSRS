@@ -50,6 +50,14 @@
       <FullPath>MfgJOSheetPrt_Sub.rdl</FullPath>
     </ProjectItem>
     <ProjectItem>
+      <Name>MfgPartCollectingList_Cust.rdl</Name>
+      <FullPath>MfgPartCollectingList_Cust.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>MfgPartCollectingList_Cust_Sub.rdl</Name>
+      <FullPath>MfgPartCollectingList_Cust_Sub.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
       <Name>OrdShipActRpt.rdl</Name>
       <FullPath>OrdShipActRpt.rdl</FullPath>
     </ProjectItem>
@@ -110,12 +118,8 @@
       <FullPath>PurSupplySheetPrt2.rdl</FullPath>
     </ProjectItem>
     <ProjectItem>
-      <Name>MfgPartCollectingList_Cust.rdl</Name>
-      <FullPath>MfgPartCollectingList_Cust.rdl</FullPath>
-    </ProjectItem>
-    <ProjectItem>
-      <Name>MfgPartCollectingList_Cust_Sub.rdl</Name>
-      <FullPath>MfgPartCollectingList_Cust_Sub.rdl</FullPath>
+      <Name>MfgManJOPlanRpt.rdl</Name>
+      <FullPath>MfgManJOPlanRpt.rdl</FullPath>
     </ProjectItem>
   </Reports>
   <Configurations>
