@@ -86,7 +86,7 @@ AND KEY02 = @KEY02</CommandText>
         </Field>
       </Fields>
     </DataSet>
-    <DataSet Name="MfgManJOPlanRptList">
+    <DataSet Name="PurManPOPlanRptList">
       <Query>
         <DataSourceName>PMDS</DataSourceName>
         <QueryParameters>
@@ -99,14 +99,20 @@ AND KEY02 = @KEY02</CommandText>
           <QueryParameter Name="@TTL_WEEK">
             <Value>=Parameters!TTL_WEEK.Value</Value>
           </QueryParameter>
+          <QueryParameter Name="@CATG_CD">
+            <Value>=Parameters!CATG_CD.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name="@BUYER_CD">
+            <Value>=Parameters!BUYER_CD.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name="@VENDOR_CD">
+            <Value>=Parameters!VENDOR_CD.Value</Value>
+          </QueryParameter>
           <QueryParameter Name="@SCH_ID">
             <Value>=Parameters!SCH_ID.Value</Value>
           </QueryParameter>
-          <QueryParameter Name="@WS_CD">
-            <Value>=Parameters!WS_CD.Value</Value>
-          </QueryParameter>
         </QueryParameters>
-        <CommandText>--MfgManJOPlanRpt_マニュアル作業計画表SQL
+        <CommandText>--PurManPOPlanRpt_マニュアル発注計画表SQL
 --月（週）単位のカレンダ未加工のデータ（二の統合）
 IF OBJECT_ID('tempdb..#TMP_CAL') IS NOT NULL DROP TABLE #TMP_CAL
 SELECT * INTO #TMP_CAL FROM (
@@ -140,105 +146,79 @@ CREATE INDEX TMP_CAL_IDX1 ON #TMP_CAL (DATE_WEEK_CYM)
 CREATE INDEX TMP_CAL_IDX2 ON #TMP_CAL (DATE_ID)
 --SELECT * FROM #TMP_CAL
 
---マニュアル作業計画表未加工のデータ
-IF OBJECT_ID('tempdb..#TMP_JOB') IS NOT NULL DROP TABLE #TMP_JOB
-SELECT * INTO #TMP_JOB FROM (
+--マニュアル発注計画表未加工のデータ
+IF OBJECT_ID('tempdb..#TMP_PUR') IS NOT NULL DROP TABLE #TMP_PUR
+SELECT * INTO #TMP_PUR FROM (
   SELECT
   (CASE @DATE_TYPE WHEN 0 THEN 'WEEK' ELSE 'MONTH' END) DATE_TYPE_TXT,
-  PD.SCH_ID,
-  S_SCH_NAME.DATA_CHAR SCH_NAME,
-  PD.ITEM_NO,
-  IM.ITEM_DESC,
-  IW.WS_CD,
-  IW.WS_DESC,
-  ISNULL(RM.MFG_LT,0) MFG_LT,
-  PD.DISB_WHS,
-  WH.WHS_DESC,
-  --ISNULL(ID.INV_BAL,0) INV_BAL,
-  (SELECT ISNULL(SUM(ID.INV_BAL),0) INV_BAL FROM INVENTORY_DETAIL ID
-    WHERE ID.INV_YM = 0
-      AND ID.INV_TYPE = 0
-      AND ID.INV_WIP_TYPE IN (0,1)
-      AND ID.ITEM_NO = PD.ITEM_NO
-      AND ID.WHS_CD = PD.DISB_WHS
-      AND (ID.WS_CD = IW.WS_CD OR ID.WS_CD='') ) INV_BAL,--// 現在庫
-  S_UMSR_NAME.DATA_CHAR UMSR_NAME,
-  ISNULL(T.DATE_ID,0) DATE_ID,
-  (CASE @DATE_TYPE WHEN 0 THEN CM.TTL_WEEK ELSE CM.CALENDAR_CYM END) DATE_WEEK_CYM,
-  MIN(CM.CALENDAR_DATE) MIN_DATE,
-  MAX(CM.CALENDAR_DATE) MAX_DATE,
-  SUM(CASE WHEN PD.PLAN_QTY-PD.INPUT_QTY&lt;0 THEN 0 ELSE PD.PLAN_QTY-PD.INPUT_QTY END) PLAN_QTY,
-  SUM(PD.ORDER_QTY) ORDER_QTY,
-  SUM(PD.JOB_ORDER_QTY) JOB_ORDER_QTY
-  FROM ( --//所要データ
-      SELECT PD.SCH_ID, PD.ITEM_UMSR, PD.ITEM_NO, PD.WS_CD, PD.DISB_WHS, PD.SCH_DISB_DATE, PD.PLAN_QTY, 0 INPUT_QTY 
-            ,0 ORDER_QTY, 0 JOB_ORDER_QTY
-          FROM PLANNED_DEMAND PD
-          INNER JOIN PLANNED_ORDER PO ON PD.ORDER_NO = PO.ORDER_NO
-          WHERE (PD.SUB_GRP_CD = '' OR (PD.SUB_GRP_CD &lt;&gt; '' AND PD.SUB_ACTION_FLAG = 1))
-            AND PO.SC_FLAG = 0
-            AND PD.PO_TYPE = 3
-            AND PD.ITEM_TYPE &lt;&gt; '99'
-      UNION ALL
-      SELECT D.SCH_ID, D.ITEM_UMSR, D.ITEM_NO, D.WS_CD, D.DISB_WHS, D.SCH_DISB_DATE, D.PLAN_QTY, D.INPUT_QTY
-            ,0 ORDER_QTY, 0 JOB_ORDER_QTY
-          FROM DEMAND D
-          INNER JOIN JOB_ORDER JO ON D.ORDER_NO = JO.ORDER_NO
-          WHERE (D.SUB_GRP_CD = '' OR (D.SUB_GRP_CD &lt;&gt; '' AND D.SUB_ACTION_FLAG = 1))
-            AND D.PO_TYPE = 3
-            AND D.ITEM_TYPE &lt;&gt; '99'
-            AND D.DEMAND_STATUS &lt; 85
-      UNION ALL
-      SELECT POD.SCH_ID, POD.ITEM_UMSR, POD.ITEM_NO, POD.WS_CD, POD.DISB_WHS, PO.SCH_COMPL_DATE SCH_DISB_DATE, 0 PLAN_QTY, 0 INPUT_QTY
-            ,PO.ORDER_QTY, 0 JOB_ORDER_QTY
-          FROM PLANNED_ORDER PO
-          INNER JOIN (
-                  SELECT PD.SCH_ID, PD.ITEM_UMSR, PD.ITEM_NO, PD.WS_CD, PD.DISB_WHS
-                  FROM PLANNED_DEMAND PD
-                  INNER JOIN PLANNED_ORDER PO ON PD.ORDER_NO = PO.ORDER_NO
-                  WHERE (PD.SUB_GRP_CD = '' OR (PD.SUB_GRP_CD &lt;&gt; '' AND PD.SUB_ACTION_FLAG = 1))
-                    AND PO.SC_FLAG = 0
-                    AND PD.PO_TYPE = 3
-                    AND PD.ITEM_TYPE &lt;&gt; '99'
-                  UNION ALL
-                  SELECT D.SCH_ID, D.ITEM_UMSR, D.ITEM_NO, D.WS_CD, D.DISB_WHS
-                  FROM DEMAND D
-                  INNER JOIN JOB_ORDER JO ON D.ORDER_NO = JO.ORDER_NO
-                  WHERE (D.SUB_GRP_CD = '' OR (D.SUB_GRP_CD &lt;&gt; '' AND D.SUB_ACTION_FLAG = 1))
-                    AND D.PO_TYPE = 3
-                    AND D.ITEM_TYPE &lt;&gt; '99'
-                    AND D.DEMAND_STATUS &lt; 85
-                  ) POD ON POD.ITEM_NO = PO.ITEM_NO AND POD.DISB_WHS = PO.WHS_CD
-          WHERE PO.SC_FLAG = 0
-            AND PO.PO_TYPE = 3
-            AND PO.ITEM_TYPE &lt;&gt; '99'
-      UNION ALL
-      SELECT JOD.SCH_ID, JOD.ITEM_UMSR, JOD.ITEM_NO, JOD.WS_CD, JOD.DISB_WHS, JO.SCH_COMPL_DATE SCH_DISB_DATE, 0 PLAN_QTY, 0 INPUT_QTY
-            ,0 ORDER_QTY, CASE WHEN (JO.ORDER_QTY - JO.JOB_ORDER_COMPL_QTY) &lt; 0 THEN 0 ELSE (JO.ORDER_QTY - JO.JOB_ORDER_COMPL_QTY) END JOB_ORDER_QTY
-          FROM JOB_ORDER JO
-          INNER JOIN (
-                  SELECT PD.SCH_ID, PD.ITEM_UMSR, PD.ITEM_NO, PD.WS_CD, PD.DISB_WHS
-                  FROM PLANNED_DEMAND PD
-                  INNER JOIN PLANNED_ORDER PO ON PD.ORDER_NO = PO.ORDER_NO
-                  WHERE (PD.SUB_GRP_CD = '' OR (PD.SUB_GRP_CD &lt;&gt; '' AND PD.SUB_ACTION_FLAG = 1))
-                    AND PO.SC_FLAG = 0
-                    AND PD.PO_TYPE = 3
-                    AND PD.ITEM_TYPE &lt;&gt; '99'
-                  UNION ALL
-                  SELECT D.SCH_ID, D.ITEM_UMSR, D.ITEM_NO, D.WS_CD, D.DISB_WHS
-                  FROM DEMAND D
-                  INNER JOIN JOB_ORDER JO ON D.ORDER_NO = JO.ORDER_NO
-                  WHERE (D.SUB_GRP_CD = '' OR (D.SUB_GRP_CD &lt;&gt; '' AND D.SUB_ACTION_FLAG = 1))
-                    AND D.PO_TYPE = 3
-                    AND D.ITEM_TYPE &lt;&gt; '99'
-                    AND D.DEMAND_STATUS &lt; 85
-                  ) JOD ON JOD.ITEM_NO = JO.ITEM_NO AND JOD.DISB_WHS = JO.WHS_CD
-          WHERE    JO.PO_TYPE = 3
-            AND JO.ITEM_TYPE &lt;&gt; '99'
-            AND JO.ORDER_STATUS &lt; 85
-      ) PD                
-  INNER JOIN 
-      ( SELECT * FROM CALENDAR_MASTER            
+  PM.BUYER_CD,        S1.DATA_CHAR BUYER_NAME,
+  PD.SCH_ID,          S2.DATA_CHAR SCH_NAME,
+  PM.VENDOR_CD,       V.VENDOR_NAME,      PM.DELV_LT,
+  PD.ITEM_NO,         I.ITEM_DESC,
+  PD.DISB_WHS,        W.WHS_DESC,
+  PP.TENTATIVE_PRC,   PP.TENTATIVE_CUR,   S5.DATA_CHAR TEN_CUR_NAME,
+  PP.ACT_PRC,         PP.ACT_CUR,         S4.DATA_CHAR ACT_CUR_NAME,
+  PP.COM_PRC_FLAG,
+  S3.DATA_CHAR UMSR,
+  INV.INV_BAL,
+  S6.DATA_CHAR ITEM_UMSR,
+  SUM(PD.PO_QTY) PO_QTY,  --//発注残
+  SUM(CASE WHEN PD.PLAN_QTY-PD.INPUT_QTY&lt;0 THEN 0 ELSE PD.PLAN_QTY-PD.INPUT_QTY END) PLAN_QTY,--//所要数量
+  MIN(C.CALENDAR_DATE) MIN_DATE,MAX(C.CALENDAR_DATE) MAX_DATE,
+  (CASE @DATE_TYPE WHEN 0 THEN C.TTL_WEEK ELSE C.CALENDAR_CYM END) DATE_WEEK_CYM,
+  ISNULL(T.DATE_ID,0) DATE_ID
+  FROM (   --//所要データ 
+           SELECT P.DEMAND_NO, P.SCH_ID, P.ITEM_NO, P.DISB_WHS, P.PLAN_QTY, P.SCH_DISB_DATE,
+                 P.SUB_GRP_CD, P.SUB_ACTION_FLAG, P.PO_TYPE,P.INPUT_QTY,
+                 ISNULL(MIN(PTY_NO),0) PTY_NO
+                ,P.PO_QTY
+           FROM
+            (  
+               SELECT DEMAND_NO, SCH_ID, ITEM_NO, DISB_WHS, PLAN_QTY, SCH_DISB_DATE,
+                      SUB_GRP_CD, SUB_ACTION_FLAG, PO_TYPE, 0 INPUT_QTY
+                      ,0 PO_QTY
+               FROM PLANNED_DEMAND
+                  WHERE ITEM_TYPE &lt;&gt; '99'
+               UNION ALL
+               SELECT DEMAND_NO, SCH_ID, ITEM_NO, DISB_WHS, PLAN_QTY, SCH_DISB_DATE,
+                      SUB_GRP_CD, SUB_ACTION_FLAG, PO_TYPE, INPUT_QTY
+                      ,0 PO_QTY
+               FROM DEMAND
+               WHERE DEMAND_STATUS &lt; 85
+                  AND ITEM_TYPE &lt;&gt; '99'
+               UNION ALL
+               SELECT '' DEMAND_NO, POD.SCH_ID, POD.ITEM_NO, POD.DISB_WHS, 0 PLAN_QTY, PO_DUE_DATE SCH_DISB_DATE, 
+                      POD.SUB_GRP_CD, POD.SUB_ACTION_FLAG, POD.PO_TYPE, 0 INPUT_QTY
+                      ,CAST((CASE WHEN PO_QTY-STOCK_QTY &lt; 0 THEN 0 ELSE PO_QTY-STOCK_QTY END)
+                       * (CASE WHEN ISNULL(UMSR_CONV_RATIO,1) = 0 THEN 1 ELSE ISNULL(UMSR_CONV_RATIO,1) END) AS DECIMAL(11,2)) PO_QTY 
+               FROM PUR_ORDER PO
+               INNER JOIN (
+                            SELECT DEMAND_NO, SCH_ID, ITEM_NO, DISB_WHS, SUB_GRP_CD, SUB_ACTION_FLAG, PO_TYPE
+                            FROM PLANNED_DEMAND
+                               WHERE ITEM_TYPE &lt;&gt; '99'
+                               AND PO_TYPE = 3
+                               AND (SUB_GRP_CD = '' OR (SUB_GRP_CD &lt;&gt; '' AND SUB_ACTION_FLAG = 1))
+                            UNION ALL
+                            SELECT DEMAND_NO, SCH_ID, ITEM_NO, DISB_WHS, SUB_GRP_CD, SUB_ACTION_FLAG, PO_TYPE
+                            FROM DEMAND
+                            WHERE DEMAND_STATUS &lt; 85
+                               AND ITEM_TYPE &lt;&gt; '99'
+                               AND PO_TYPE = 3
+                               AND (SUB_GRP_CD = '' OR (SUB_GRP_CD &lt;&gt; '' AND SUB_ACTION_FLAG = 1))
+                          ) POD ON POD.ITEM_NO = PO.ITEM_NO AND POD.DISB_WHS = PO.WHS_CD
+               WHERE ORDER_STATUS &lt; 77
+            ) P
+           LEFT OUTER JOIN PURCHASE_MASTER M                                                                                 
+                ON P.ITEM_NO = M.ITEM_NO                                                                                                
+                AND P.SCH_DISB_DATE &gt;= M.BEG_EFF_DATE                                                                             
+                AND P.SCH_DISB_DATE &lt;= M.END_EFF_DATE                                                                             
+           GROUP BY P.DEMAND_NO, P.SCH_ID, P.ITEM_NO, P.DISB_WHS, P.PLAN_QTY, P.SCH_DISB_DATE,       
+                    P.SUB_GRP_CD, P.SUB_ACTION_FLAG, P.PO_TYPE,P.INPUT_QTY                                   
+                   ,P.PO_QTY                                                                                  
+       ) PD
+  LEFT OUTER JOIN WAREHOUSE_MASTER W ON W.WHS_CD  = PD.DISB_WHS
+  INNER JOIN --//CALENDAR
+      ( SELECT * FROM CALENDAR_MASTER
         WHERE CALENDAR_ID = '00'
           AND CALENDAR_DATE  &gt;= ( CASE @DATE_TYPE  --0.週単位 1.月単位
                                   WHEN 0 THEN (SELECT MIN(CALENDAR_DATE) FROM CALENDAR_MASTER WHERE TTL_WEEK = @TTL_WEEK)
@@ -251,228 +231,226 @@ SELECT * INTO #TMP_JOB FROM (
                                                CONVERT(VARCHAR(8), DATEADD(DAY,-1,(DATEADD(MONTH,7,CONVERT(DATETIME,CONVERT(VARCHAR(8),@CALENDAR_DATE))))), 112)) 
                                   END
                                 )
-      ) CM ON PD.SCH_DISB_DATE = CM.CALENDAR_DATE
-  INNER JOIN ITEM_MASTER IM ON PD.ITEM_NO = IM.ITEM_NO
-  LEFT JOIN WORKSHOP_MASTER WS ON PD.WS_CD = WS.WS_CD
-  LEFT JOIN ( SELECT IW.ITEM_NO, IW.WS_CD, IW.BEG_EFF_DATE, IW.END_EFF_DATE, MIW.PTY_NO, WM.SC_FLAG, WM.WS_DESC
-              FROM ITEM_WS_MASTER IW
-              INNER JOIN ( SELECT ITEM_NO, MIN(PTY_NO) PTY_NO FROM ITEM_WS_MASTER GROUP BY ITEM_NO ) MIW
-                 ON IW.ITEM_NO = MIW.ITEM_NO AND IW.PTY_NO = MIW.PTY_NO
-              INNER JOIN WORKSHOP_MASTER WM ON IW.WS_CD = WM.WS_CD
-            ) IW ON PD.ITEM_NO = IW.ITEM_NO
-                AND PD.SCH_DISB_DATE &gt;= IW.BEG_EFF_DATE
-                AND PD.SCH_DISB_DATE &lt;= IW.END_EFF_DATE
-  LEFT JOIN ( SELECT ITEM_NO, WS_CD, SUM(MFG_LT) MFG_LT
-              FROM  ROUTINE_MASTER
-              WHERE BEG_EFF_DATE &lt;= CONVERT(varchar(100), GETDATE(), 112)
-              AND END_EFF_DATE &gt;= CONVERT(varchar(100), GETDATE(), 112)
-              GROUP BY ITEM_NO, WS_CD
-            ) RM ON PD.ITEM_NO = RM.ITEM_NO AND IW.WS_CD = RM.WS_CD
-  LEFT JOIN WAREHOUSE_MASTER WH ON PD.DISB_WHS = WH.WHS_CD
-  --LEFT JOIN ( --// 現在庫
-  --            SELECT ID.ITEM_NO, ID.WHS_CD, ID.WS_CD, SUM(ID.INV_BAL) INV_BAL
-  --            FROM INVENTORY_DETAIL ID
-  --            WHERE ID.INV_YM = 0
-  --            AND ID.INV_TYPE = 0
-  --            AND ID.INV_WIP_TYPE IN (0,1)
-  --            GROUP BY ID.ITEM_NO, ID.WHS_CD, ID.WS_CD
-  --          ) ID ON PD.ITEM_NO = ID.ITEM_NO
-  --          AND PD.DISB_WHS = ( CASE WHEN ID.WHS_CD = '' THEN PD.DISB_WHS ELSE ID.WHS_CD END )
-  --          AND PD.WS_CD = ( CASE WHEN ID.WS_CD = '' THEN PD.WS_CD ELSE ID.WS_CD END )           
-  LEFT JOIN ( SELECT * FROM SYSTEM_PARAMETER WHERE KEY01 = 'SCH_ID' ) S_SCH_NAME ON PD.SCH_ID = S_SCH_NAME.KEY02
-  LEFT JOIN ( SELECT * FROM SYSTEM_PARAMETER WHERE KEY01 = 'ITEM_UMSR' ) S_UMSR_NAME ON PD.ITEM_UMSR = S_UMSR_NAME.KEY02
-  LEFT JOIN #TMP_CAL T ON T.DATE_WEEK_CYM=(CASE @DATE_TYPE WHEN 0 THEN CM.TTL_WEEK ELSE CM.CALENDAR_CYM END)
-  WHERE 1=1
-  AND ISNULL(IW.SC_FLAG,1) = 0
+      ) C ON C.CALENDAR_DATE  = PD.SCH_DISB_DATE
+  LEFT OUTER JOIN ITEM_MASTER I ON I.ITEM_NO  = PD.ITEM_NO 
+       AND (I.CATG_CD = @CATG_CD or @CATG_CD = '')
+  LEFT OUTER JOIN PURCHASE_MASTER PM ON PM.ITEM_NO  = PD.ITEM_NO
+       AND PM.PTY_NO  = PD.PTY_NO
+       AND PM.BEG_EFF_DATE &lt;= PD.SCH_DISB_DATE
+       AND PM.END_EFF_DATE &gt;= PD.SCH_DISB_DATE
+       AND (PM.BUYER_CD = @BUYER_CD or @BUYER_CD = '')
+       AND (PM.VENDOR_CD = @VENDOR_CD or @VENDOR_CD = '')
+  LEFT OUTER JOIN --// 現在庫
+       (SELECT ITEM_NO, WHS_CD, SUM(INV_BAL) INV_BAL
+          FROM INVENTORY_DETAIL INV
+         WHERE INV.INV_YM = 0
+               AND INV.INV_WIP_TYPE IN (0,1)
+               AND INV.INV_TYPE=0
+         GROUP BY ITEM_NO, WHS_CD) INV
+      ON INV.ITEM_NO = PD.ITEM_NO AND INV.WHS_CD = PD.DISB_WHS
+  LEFT OUTER JOIN
+       ( SELECT IW.ITEM_NO, IW.WS_CD, IW.BEG_EFF_DATE, IW.END_EFF_DATE, MIW.PTY_NO, WM.SC_FLAG 
+         FROM ITEM_WS_MASTER IW
+         INNER JOIN
+           (
+            SELECT ITEM_NO, MIN(PTY_NO) PTY_NO
+                 FROM ITEM_WS_MASTER
+             GROUP BY ITEM_NO
+           ) MIW ON IW.ITEM_NO = MIW.ITEM_NO AND IW.PTY_NO = MIW.PTY_NO
+         INNER JOIN WORKSHOP_MASTER WM ON IW.WS_CD = WM.WS_CD
+        ) IW ON PD.ITEM_NO = IW.ITEM_NO
+        AND PD.SCH_DISB_DATE &gt;= IW.BEG_EFF_DATE
+        AND PD.SCH_DISB_DATE &lt;= IW.END_EFF_DATE
+  LEFT OUTER JOIN PURCHASE_PRICE_MASTER PP ON PP.ITEM_NO = PM.ITEM_NO
+       AND PP.WS_CD = ISNULL(IW.WS_CD,'*')
+       AND PP.PROCESS_CD = '*'
+       AND PP.VENDOR_CD = PM.VENDOR_CD
+       AND PP.BEG_EFF_DATE &lt;= PD.SCH_DISB_DATE
+       AND PP.END_EFF_DATE &gt;= PD.SCH_DISB_DATE
+  LEFT OUTER JOIN VENDOR_MASTER V ON V.VENDOR_CD = PM.VENDOR_CD
+       AND V.BEG_EFF_DATE &lt;= PD.SCH_DISB_DATE
+       AND V.END_EFF_DATE &gt;= PD.SCH_DISB_DATE
+  LEFT OUTER JOIN SYSTEM_PARAMETER S1 ON S1.KEY01 = 'BUYER_CD' AND S1.KEY02 = PM.BUYER_CD
+  LEFT OUTER JOIN SYSTEM_PARAMETER S2 ON S2.KEY01 = 'SCH_ID' AND S2.KEY02 = PD.SCH_ID
+  LEFT OUTER JOIN SYSTEM_PARAMETER S3 ON S3.KEY01 = 'ITEM_UMSR' AND S3.KEY02 = PM.PUR_UMSR
+  LEFT OUTER JOIN SYSTEM_PARAMETER S4 ON S4.KEY01 = 'CURRENCY_CD' AND S4.KEY02 = PP.ACT_CUR
+  LEFT OUTER JOIN SYSTEM_PARAMETER S5 ON S5.KEY01 = 'CURRENCY_CD' AND S5.KEY02 = PP.TENTATIVE_CUR
+  LEFT OUTER JOIN SYSTEM_PARAMETER S6 ON S6.KEY01 = 'ITEM_UMSR' AND S6.KEY02 = I.ITEM_UMSR
+  LEFT JOIN #TMP_CAL T ON T.DATE_WEEK_CYM=(CASE @DATE_TYPE WHEN 0 THEN C.TTL_WEEK ELSE C.CALENDAR_CYM END)
+  WHERE 1 = 1
+  AND (PD.SUB_GRP_CD = '' OR (PD.SUB_GRP_CD &lt;&gt; '' AND PD.SUB_ACTION_FLAG = 1))
+  AND ISNULL(IW.SC_FLAG,1) = 1
+  AND PD.PO_TYPE = 3
   AND (PD.SCH_ID = @SCH_ID or @SCH_ID = '')
-  AND (IW.WS_CD = @WS_CD or @WS_CD = '')
+  AND (I.CATG_CD  = @CATG_CD or @CATG_CD = '')
   GROUP BY
-       PD.SCH_ID,
-       S_SCH_NAME.DATA_CHAR,
-       PD.ITEM_NO,
-       IM.ITEM_DESC,
-       IW.WS_CD,
-       IW.WS_DESC,
-       RM.MFG_LT,
-       T.DATE_ID,
-       (CASE @DATE_TYPE WHEN 0 THEN CM.TTL_WEEK ELSE CM.CALENDAR_CYM END),  --0.週単位 1.月単位
-       PD.DISB_WHS,
-       WH.WHS_DESC,
-       --ID.INV_BAL,
-       S_UMSR_NAME.DATA_CHAR 
+        PM.BUYER_CD,        S1.DATA_CHAR,       PD.SCH_ID,     S2.DATA_CHAR,   
+        PM.VENDOR_CD,       V.VENDOR_NAME,      PM.DELV_LT,     
+        PD.ITEM_NO,         I.ITEM_DESC,        PD.DISB_WHS,    W.WHS_DESC,     
+        PP.TENTATIVE_PRC,   PP.TENTATIVE_CUR,   S5.DATA_CHAR,
+        PP.ACT_PRC,         PP.ACT_CUR,         S4.DATA_CHAR,
+        PP.COM_PRC_FLAG,    S3.DATA_CHAR,       INV.INV_BAL,
+        S6.DATA_CHAR,        
+        (CASE @DATE_TYPE WHEN 0 THEN C.TTL_WEEK ELSE C.CALENDAR_CYM END)  --0.週単位 1.月単位
+        ,T.DATE_ID 
   --//開始週(月)以前のデータ抽出
   UNION ALL
   SELECT
   (CASE @DATE_TYPE WHEN 0 THEN 'WEEK' ELSE 'MONTH' END) DATE_TYPE_TXT,
-  PD.SCH_ID,
-  S_SCH_NAME.DATA_CHAR SCH_NAME,
-  PD.ITEM_NO,
-  IM.ITEM_DESC,
-  IW.WS_CD,
-  IW.WS_DESC,
-  ISNULL(RM.MFG_LT,0) MFG_LT,
-  PD.DISB_WHS,
-  WH.WHS_DESC,
-  --ISNULL(ID.INV_BAL,0) INV_BAL,
-  (SELECT ISNULL(SUM(ID.INV_BAL),0) INV_BAL FROM INVENTORY_DETAIL ID
-    WHERE ID.INV_YM = 0
-      AND ID.INV_TYPE = 0
-      AND ID.INV_WIP_TYPE IN (0,1)
-      AND ID.ITEM_NO = PD.ITEM_NO
-      AND ID.WHS_CD = PD.DISB_WHS
-      AND (ID.WS_CD = IW.WS_CD OR ID.WS_CD='')) INV_BAL,--// 現在庫
-  S_UMSR_NAME.DATA_CHAR UMSR_NAME,
-  CAST(1 AS INT) DATE_ID,
+  PM.BUYER_CD,        S1.DATA_CHAR BUYER_NAME,
+  PD.SCH_ID,          S2.DATA_CHAR SCH_NAME,
+  PM.VENDOR_CD,       V.VENDOR_NAME,      PM.DELV_LT,
+  PD.ITEM_NO,         I.ITEM_DESC,
+  PD.DISB_WHS,        W.WHS_DESC,
+  PP.TENTATIVE_PRC,   PP.TENTATIVE_CUR,   S5.DATA_CHAR TEN_CUR_NAME,
+  PP.ACT_PRC,         PP.ACT_CUR,         S4.DATA_CHAR ACT_CUR_NAME,
+  PP.COM_PRC_FLAG,
+  S3.DATA_CHAR UMSR,
+  INV.INV_BAL,
+  S6.DATA_CHAR ITEM_UMSR,
+  SUM(PD.PO_QTY) PO_QTY,  --//発注残
+  SUM(CASE WHEN PD.PLAN_QTY-PD.INPUT_QTY&lt;0 THEN 0 ELSE PD.PLAN_QTY-PD.INPUT_QTY END) PLAN_QTY,--//所要数量
+  0 MIN_DATE,     MAX(C.CALENDAR_DATE) MAX_DATE,
   (CASE @DATE_TYPE WHEN 0 THEN (@TTL_WEEK - 1) ELSE
         YEAR(DATEADD(DAY,-1,CONVERT(DATETIME,CONVERT(VARCHAR(8),@CALENDAR_DATE))))*100
         + MONTH(DATEADD(DAY,-1,CONVERT(DATETIME,CONVERT(VARCHAR(8),@CALENDAR_DATE))))
   END) DATE_WEEK_CYM,
-  0 MIN_DATE,
-  MAX(CM.CALENDAR_DATE) MAX_DATE,
-  SUM(CASE WHEN PD.PLAN_QTY-PD.INPUT_QTY&lt;0 THEN 0 ELSE PD.PLAN_QTY-PD.INPUT_QTY END) PLAN_QTY,
-  SUM(PD.ORDER_QTY) ORDER_QTY,
-  SUM(PD.JOB_ORDER_QTY) JOB_ORDER_QTY
-  FROM ( --//所要データ
-      SELECT PD.SCH_ID, PD.ITEM_UMSR, PD.ITEM_NO, PD.WS_CD, PD.DISB_WHS, PD.SCH_DISB_DATE, PD.PLAN_QTY, 0 INPUT_QTY 
-            ,0 ORDER_QTY, 0 JOB_ORDER_QTY
-          FROM PLANNED_DEMAND PD    
-          INNER JOIN PLANNED_ORDER PO ON PD.ORDER_NO = PO.ORDER_NO
-          WHERE (PD.SUB_GRP_CD = '' OR (PD.SUB_GRP_CD &lt;&gt; '' AND PD.SUB_ACTION_FLAG = 1))
-            AND PO.SC_FLAG = 0
-            AND PD.PO_TYPE = 3
-            AND PD.ITEM_TYPE &lt;&gt; '99'
-      UNION ALL                
-      SELECT D.SCH_ID, D.ITEM_UMSR, D.ITEM_NO, D.WS_CD, D.DISB_WHS, D.SCH_DISB_DATE, D.PLAN_QTY, D.INPUT_QTY
-            ,0 ORDER_QTY, 0 JOB_ORDER_QTY 
-          FROM DEMAND D
-          INNER JOIN JOB_ORDER JO ON D.ORDER_NO = JO.ORDER_NO
-          WHERE (D.SUB_GRP_CD = '' OR (D.SUB_GRP_CD &lt;&gt; '' AND D.SUB_ACTION_FLAG = 1))
-           AND D.PO_TYPE = 3
-           AND D.ITEM_TYPE &lt;&gt; '99'
-           AND D.DEMAND_STATUS &lt; 85
-      UNION ALL 
-      SELECT POD.SCH_ID, POD.ITEM_UMSR, POD.ITEM_NO, POD.WS_CD, POD.DISB_WHS, PO.SCH_COMPL_DATE SCH_DISB_DATE, 0 PLAN_QTY, 0 INPUT_QTY
-           , PO.ORDER_QTY, 0 JOB_ORDER_QTY
-          FROM  PLANNED_ORDER PO 
-          INNER JOIN ( SELECT PD.SCH_ID, PD.ITEM_UMSR, PD.ITEM_NO, PD.WS_CD, PD.DISB_WHS
-                       FROM PLANNED_DEMAND PD
-                       INNER JOIN PLANNED_ORDER PO ON PD.ORDER_NO = PO.ORDER_NO
-                       WHERE (PD.SUB_GRP_CD = '' OR (PD.SUB_GRP_CD &lt;&gt; '' AND PD.SUB_ACTION_FLAG = 1))
-                         AND PO.SC_FLAG = 0
-                         AND PD.PO_TYPE = 3
-                         AND PD.ITEM_TYPE &lt;&gt; '99'
-                       UNION ALL
-                       SELECT D.SCH_ID, D.ITEM_UMSR, D.ITEM_NO, D.WS_CD, D.DISB_WHS
-                       FROM DEMAND D
-                       INNER JOIN JOB_ORDER JO ON D.ORDER_NO = JO.ORDER_NO
-                       WHERE (D.SUB_GRP_CD = '' OR (D.SUB_GRP_CD &lt;&gt; '' AND D.SUB_ACTION_FLAG = 1))
-                         AND D.PO_TYPE = 3 
-                         AND D.ITEM_TYPE &lt;&gt; '99' 
-                         AND D.DEMAND_STATUS &lt; 85 
-                      ) POD ON POD.ITEM_NO = PO.ITEM_NO AND POD.DISB_WHS = PO.WHS_CD
-          WHERE PO.SC_FLAG = 0                        
-            AND PO.PO_TYPE = 3                        
-            AND PO.ITEM_TYPE &lt;&gt; '99'                
-      UNION ALL
-      SELECT JOD.SCH_ID, JOD.ITEM_UMSR, JOD.ITEM_NO, JOD.WS_CD, JOD.DISB_WHS, JO.SCH_COMPL_DATE SCH_DISB_DATE, 0 PLAN_QTY, 0 INPUT_QTY
-           , 0 ORDER_QTY, CASE WHEN (JO.ORDER_QTY - JO.JOB_ORDER_COMPL_QTY) &lt; 0 THEN 0 ELSE (JO.ORDER_QTY - JO.JOB_ORDER_COMPL_QTY) END JOB_ORDER_QTY         
-          FROM JOB_ORDER JO 
-          INNER JOIN ( SELECT PD.SCH_ID, PD.ITEM_UMSR, PD.ITEM_NO, PD.WS_CD, PD.DISB_WHS
-                       FROM PLANNED_DEMAND PD                            
-                       INNER JOIN PLANNED_ORDER PO ON PD.ORDER_NO = PO.ORDER_NO    
-                       WHERE (PD.SUB_GRP_CD = '' OR (PD.SUB_GRP_CD &lt;&gt; '' AND PD.SUB_ACTION_FLAG = 1))
-                         AND PO.SC_FLAG = 0                                
-                         AND PD.PO_TYPE = 3                                
-                         AND PD.ITEM_TYPE &lt;&gt; '99'                        
-                       UNION ALL
-                       SELECT D.SCH_ID, D.ITEM_UMSR, D.ITEM_NO, D.WS_CD, D.DISB_WHS
-                       FROM DEMAND D                                    
-                       INNER JOIN JOB_ORDER JO ON D.ORDER_NO = JO.ORDER_NO            
-                       WHERE (D.SUB_GRP_CD = '' OR (D.SUB_GRP_CD &lt;&gt; '' AND D.SUB_ACTION_FLAG = 1))    
-                         AND D.PO_TYPE = 3                
-                         AND D.ITEM_TYPE &lt;&gt; '99'            
-                         AND D.DEMAND_STATUS &lt; 85        
-                      ) JOD ON JOD.ITEM_NO = JO.ITEM_NO AND JOD.DISB_WHS = JO.WHS_CD
-          WHERE JO.PO_TYPE = 3                        
-            AND JO.ITEM_TYPE &lt;&gt; '99'                    
-            AND JO.ORDER_STATUS &lt; 85                    
-      ) PD                
-  INNER JOIN ( SELECT * FROM CALENDAR_MASTER 
-             WHERE CALENDAR_ID = '00'
-               AND CALENDAR_DATE  &lt;= ( CASE @DATE_TYPE  --0.週単位 1.月単位
-                                       WHEN 0 THEN (SELECT MAX(CALENDAR_DATE) FROM CALENDAR_MASTER WHERE TTL_WEEK = @TTL_WEEK-1) 
-                                       WHEN 1 THEN (SELECT MAX(CALENDAR_DATE) FROM CALENDAR_MASTER WHERE CALENDAR_DATE &lt; @CALENDAR_DATE)
-                                       END 
-                                     )
-             ) CM ON PD.SCH_DISB_DATE = CM.CALENDAR_DATE
-  INNER JOIN ITEM_MASTER IM ON PD.ITEM_NO = IM.ITEM_NO
-  LEFT JOIN WORKSHOP_MASTER WS ON PD.WS_CD = WS.WS_CD    
-  LEFT JOIN ( SELECT IW.ITEM_NO, IW.WS_CD, IW.BEG_EFF_DATE, IW.END_EFF_DATE, MIW.PTY_NO, WM.SC_FLAG, WM.WS_DESC 
-              FROM ITEM_WS_MASTER IW                                                                
-              INNER JOIN ( SELECT ITEM_NO, MIN(PTY_NO) PTY_NO FROM ITEM_WS_MASTER GROUP BY ITEM_NO ) MIW 
-                    ON IW.ITEM_NO = MIW.ITEM_NO AND IW.PTY_NO = MIW.PTY_NO
-              INNER JOIN WORKSHOP_MASTER WM ON IW.WS_CD = WM.WS_CD
-            ) IW
-          ON  PD.ITEM_NO = IW.ITEM_NO
-          AND PD.SCH_DISB_DATE &gt;= IW.BEG_EFF_DATE
-          AND PD.SCH_DISB_DATE &lt;= IW.END_EFF_DATE
-  LEFT JOIN ( --// 製造L/T 
-              SELECT ITEM_NO, WS_CD, SUM(MFG_LT) MFG_LT
-              FROM  ROUTINE_MASTER
-              WHERE BEG_EFF_DATE &lt;= CONVERT(varchar(100), GETDATE(), 112)
-              AND END_EFF_DATE   &gt;= CONVERT(varchar(100), GETDATE(), 112)
-              GROUP BY ITEM_NO, WS_CD
-             ) RM ON PD.ITEM_NO = RM.ITEM_NO AND IW.WS_CD = RM.WS_CD
-  LEFT JOIN WAREHOUSE_MASTER WH ON PD.DISB_WHS = WH.WHS_CD
-  --LEFT JOIN (  --// 現在庫
-  --            SELECT ID.ITEM_NO, ID.WHS_CD, ID.WS_CD, SUM(ID.INV_BAL) INV_BAL
-  --            FROM INVENTORY_DETAIL ID
-  --            WHERE ID.INV_YM = 0
-  --            AND ID.INV_TYPE = 0
-  --            AND ID.INV_WIP_TYPE IN (0,1)
-  --            GROUP BY ID.ITEM_NO, ID.WHS_CD, ID.WS_CD
-  --          ) ID ON PD.ITEM_NO = ID.ITEM_NO
-  --          AND PD.DISB_WHS = ( CASE WHEN ID.WHS_CD = '' THEN PD.DISB_WHS ELSE ID.WHS_CD END )
-  --          AND PD.WS_CD = ( CASE WHEN ID.WS_CD = '' THEN PD.WS_CD ELSE ID.WS_CD END )
-  LEFT JOIN (SELECT * FROM SYSTEM_PARAMETER WHERE KEY01 = 'SCH_ID' ) S_SCH_NAME ON PD.SCH_ID = S_SCH_NAME.KEY02 
-  LEFT JOIN (SELECT * FROM SYSTEM_PARAMETER WHERE KEY01 = 'ITEM_UMSR' ) S_UMSR_NAME ON PD.ITEM_UMSR = S_UMSR_NAME.KEY02 
-  WHERE    1=1
-  AND ISNULL(IW.SC_FLAG,1) = 0
+  CAST(1 AS INT) DATE_ID
+  FROM (   --//所要データ
+           SELECT P.DEMAND_NO, P.SCH_ID, P.ITEM_NO, P.DISB_WHS, P.PLAN_QTY, P.SCH_DISB_DATE,
+              P.SUB_GRP_CD, P.SUB_ACTION_FLAG, P.PO_TYPE,P.INPUT_QTY,
+              ISNULL(MIN(PTY_NO),0) PTY_NO
+              ,P.PO_QTY
+           FROM
+            (
+               SELECT DEMAND_NO, SCH_ID, ITEM_NO, DISB_WHS, PLAN_QTY, SCH_DISB_DATE,
+                      SUB_GRP_CD, SUB_ACTION_FLAG, PO_TYPE,0 INPUT_QTY
+                      ,0 PO_QTY
+               FROM PLANNED_DEMAND
+                  WHERE ITEM_TYPE &lt;&gt; '99'
+               UNION ALL
+               SELECT DEMAND_NO, SCH_ID, ITEM_NO, DISB_WHS, PLAN_QTY, SCH_DISB_DATE,
+                      SUB_GRP_CD, SUB_ACTION_FLAG, PO_TYPE,INPUT_QTY
+                      ,0 PO_QTY
+               FROM DEMAND
+               WHERE DEMAND_STATUS &lt; 85
+                  AND ITEM_TYPE &lt;&gt; '99'
+                 UNION ALL
+                 SELECT '' DEMAND_NO, POD.SCH_ID, POD.ITEM_NO, POD.DISB_WHS, 0 PLAN_QTY, PO_DUE_DATE SCH_DISB_DATE, 
+                        POD.SUB_GRP_CD, POD.SUB_ACTION_FLAG, POD.PO_TYPE, 0 INPUT_QTY,
+                        CAST((CASE WHEN PO_QTY-STOCK_QTY &lt; 0 THEN 0 ELSE PO_QTY-STOCK_QTY END)
+                         * (CASE WHEN ISNULL(UMSR_CONV_RATIO,1) = 0 THEN 1 ELSE ISNULL(UMSR_CONV_RATIO,1) END) AS DECIMAL(11,2)) PO_QTY 
+                 FROM PUR_ORDER PO
+                 INNER JOIN (
+               SELECT DEMAND_NO, SCH_ID, ITEM_NO, DISB_WHS, SUB_GRP_CD, SUB_ACTION_FLAG, PO_TYPE
+               FROM PLANNED_DEMAND
+                  WHERE ITEM_TYPE &lt;&gt; '99'
+                  AND PO_TYPE = 3
+                  AND (SUB_GRP_CD = '' OR (SUB_GRP_CD &lt;&gt; '' AND SUB_ACTION_FLAG = 1))
+               UNION ALL
+               SELECT DEMAND_NO, SCH_ID, ITEM_NO, DISB_WHS, SUB_GRP_CD, SUB_ACTION_FLAG, PO_TYPE
+               FROM DEMAND
+               WHERE DEMAND_STATUS &lt; 85
+                  AND ITEM_TYPE &lt;&gt; '99'
+                  AND PO_TYPE = 3
+                  AND (SUB_GRP_CD = '' OR (SUB_GRP_CD &lt;&gt; '' AND SUB_ACTION_FLAG = 1))
+                 ) POD ON POD.ITEM_NO = PO.ITEM_NO AND POD.DISB_WHS = PO.WHS_CD
+                 WHERE ORDER_STATUS &lt; 77
+            ) P
+           LEFT OUTER JOIN PURCHASE_MASTER M
+             ON P.ITEM_NO = M.ITEM_NO
+            AND P.SCH_DISB_DATE &gt;= M.BEG_EFF_DATE
+            AND P.SCH_DISB_DATE &lt;= M.END_EFF_DATE
+           GROUP BY P.DEMAND_NO, P.SCH_ID, P.ITEM_NO, P.DISB_WHS, P.PLAN_QTY, P.SCH_DISB_DATE,
+                    P.SUB_GRP_CD, P.SUB_ACTION_FLAG, P.PO_TYPE,P.INPUT_QTY
+                   ,P.PO_QTY
+       ) PD
+  LEFT OUTER JOIN WAREHOUSE_MASTER W ON W.WHS_CD  = PD.DISB_WHS
+  INNER JOIN 
+       (SELECT * FROM CALENDAR_MASTER
+              WHERE CALENDAR_ID = '00'
+                AND CALENDAR_DATE  &lt;= ( CASE @DATE_TYPE  --0.週単位 1.月単位
+                                        WHEN 0 THEN (SELECT MAX(CALENDAR_DATE) FROM CALENDAR_MASTER WHERE TTL_WEEK = @TTL_WEEK-1) 
+                                        WHEN 1 THEN (SELECT MAX(CALENDAR_DATE) FROM CALENDAR_MASTER WHERE CALENDAR_DATE &lt; @CALENDAR_DATE)
+                                        END 
+                                      )
+       ) C ON C.CALENDAR_DATE  = PD.SCH_DISB_DATE
+  LEFT OUTER JOIN ITEM_MASTER I ON I.ITEM_NO  = PD.ITEM_NO 
+      AND (I.CATG_CD = @CATG_CD or @CATG_CD = '')
+  LEFT OUTER JOIN PURCHASE_MASTER PM ON PM.ITEM_NO  = PD.ITEM_NO
+       AND PM.PTY_NO  = PD.PTY_NO
+       AND PM.BEG_EFF_DATE &lt;= PD.SCH_DISB_DATE
+       AND PM.END_EFF_DATE &gt;= PD.SCH_DISB_DATE
+       AND (PM.BUYER_CD = @BUYER_CD or @BUYER_CD = '')
+       AND (PM.VENDOR_CD = @VENDOR_CD or @VENDOR_CD = '')
+  LEFT OUTER JOIN --// 現在庫
+       (SELECT ITEM_NO, WHS_CD, SUM(INV_BAL) INV_BAL
+          FROM INVENTORY_DETAIL INV
+         WHERE INV.INV_YM = 0
+               AND INV.INV_WIP_TYPE IN (0,1)
+               AND INV.INV_TYPE=0
+         GROUP BY ITEM_NO, WHS_CD) INV
+       ON INV.ITEM_NO = PD.ITEM_NO AND INV.WHS_CD = PD.DISB_WHS
+  LEFT OUTER JOIN
+       ( SELECT IW.ITEM_NO, IW.WS_CD, IW.BEG_EFF_DATE, IW.END_EFF_DATE, MIW.PTY_NO, WM.SC_FLAG 
+         FROM ITEM_WS_MASTER IW
+         INNER JOIN
+           (
+             SELECT ITEM_NO, MIN(PTY_NO) PTY_NO FROM ITEM_WS_MASTER GROUP BY ITEM_NO
+           ) MIW ON IW.ITEM_NO = MIW.ITEM_NO AND IW.PTY_NO = MIW.PTY_NO
+         INNER JOIN WORKSHOP_MASTER WM ON IW.WS_CD = WM.WS_CD
+       ) IW 
+       ON PD.ITEM_NO = IW.ITEM_NO
+       AND PD.SCH_DISB_DATE &gt;= IW.BEG_EFF_DATE
+       AND PD.SCH_DISB_DATE &lt;= IW.END_EFF_DATE
+  LEFT OUTER JOIN PURCHASE_PRICE_MASTER PP 
+       ON PP.ITEM_NO = PM.ITEM_NO
+       AND PP.WS_CD = ISNULL(IW.WS_CD,'*')
+       AND PP.PROCESS_CD = '*'
+       AND PP.VENDOR_CD = PM.VENDOR_CD
+       AND PP.BEG_EFF_DATE &lt;= PD.SCH_DISB_DATE
+       AND PP.END_EFF_DATE &gt;= PD.SCH_DISB_DATE
+  LEFT OUTER JOIN VENDOR_MASTER V 
+       ON V.VENDOR_CD = PM.VENDOR_CD
+       AND V.BEG_EFF_DATE &lt;= PD.SCH_DISB_DATE
+       AND V.END_EFF_DATE &gt;= PD.SCH_DISB_DATE
+  LEFT OUTER JOIN SYSTEM_PARAMETER S1 ON S1.KEY01 = 'BUYER_CD' AND S1.KEY02 = PM.BUYER_CD
+  LEFT OUTER JOIN SYSTEM_PARAMETER S2 ON S2.KEY01 = 'SCH_ID' AND S2.KEY02 = PD.SCH_ID
+  LEFT OUTER JOIN SYSTEM_PARAMETER S3 ON S3.KEY01 = 'ITEM_UMSR' AND S3.KEY02 = PM.PUR_UMSR
+  LEFT OUTER JOIN SYSTEM_PARAMETER S4 ON S4.KEY01 = 'CURRENCY_CD' AND S4.KEY02 = PP.ACT_CUR
+  LEFT OUTER JOIN SYSTEM_PARAMETER S5 ON S5.KEY01 = 'CURRENCY_CD' AND S5.KEY02 = PP.TENTATIVE_CUR
+  LEFT OUTER JOIN SYSTEM_PARAMETER S6 ON S6.KEY01 = 'ITEM_UMSR' AND S6.KEY02 = I.ITEM_UMSR
+  WHERE 1 = 1
+  AND (PD.SUB_GRP_CD = '' OR (PD.SUB_GRP_CD &lt;&gt; '' AND PD.SUB_ACTION_FLAG = 1))
+  AND ISNULL(IW.SC_FLAG,1) = 1
+  AND PD.PO_TYPE = 3
   AND (PD.SCH_ID = @SCH_ID or @SCH_ID = '')
-  AND (IW.WS_CD = @WS_CD or @WS_CD = '')
+  AND (I.CATG_CD  = @CATG_CD or @CATG_CD = '')
   GROUP BY
-      PD.SCH_ID,
-      S_SCH_NAME.DATA_CHAR,
-      PD.ITEM_NO,
-      IM.ITEM_DESC,
-      IW.WS_CD,
-      IW.WS_DESC,
-      RM.MFG_LT, 
-      --開始週(月)以前のデータ、日付単位分類使用しません
-      --(CASE @DATE_TYPE WHEN 0 THEN CM.TTL_WEEK ELSE CM.CALENDAR_CYM END),  --0.週単位 1.月単位
-      PD.DISB_WHS,                    
-      WH.WHS_DESC,                    
-      --ID.INV_BAL,                        
-      S_UMSR_NAME.DATA_CHAR            
-  --ORDER BY PD.SCH_ID,PD.ITEM_NO,IW.WS_CD,PD.DISB_WHS 
+        PM.BUYER_CD,        S1.DATA_CHAR,       PD.SCH_ID,     S2.DATA_CHAR,   
+        PM.VENDOR_CD,       V.VENDOR_NAME,      PM.DELV_LT,     
+        PD.ITEM_NO,         I.ITEM_DESC,        PD.DISB_WHS,    W.WHS_DESC,     
+        PP.TENTATIVE_PRC,   PP.TENTATIVE_CUR,   S5.DATA_CHAR,
+        PP.ACT_PRC,         PP.ACT_CUR,         S4.DATA_CHAR,
+        PP.COM_PRC_FLAG,    S3.DATA_CHAR,       INV.INV_BAL,
+        S6.DATA_CHAR
+ --ORDER BY PD.ITEM_NO, (CASE @DATE_TYPE WHEN 0 THEN C.TTL_WEEK ELSE C.CALENDAR_CYM END)
 ) B
-ORDER BY SCH_ID,ITEM_NO,WS_CD,DISB_WHS,DATE_WEEK_CYM 
-CREATE INDEX TMP_JOB_IDX1 ON #TMP_JOB (SCH_ID)
-CREATE INDEX TMP_JOB_IDX2 ON #TMP_JOB (ITEM_NO)
-CREATE INDEX TMP_JOB_IDX3 ON #TMP_JOB (DISB_WHS)
-CREATE INDEX TMP_JOB_IDX4 ON #TMP_JOB (WS_CD)
-CREATE INDEX TMP_JOB_IDX5 ON #TMP_JOB (DATE_ID)
---SELECT * FROM #TMP_JOB
+ORDER BY ITEM_NO,DATE_WEEK_CYM 
+CREATE INDEX TMP_JOB_IDX1 ON #TMP_PUR (SCH_ID)
+CREATE INDEX TMP_JOB_IDX2 ON #TMP_PUR (ITEM_NO)
+CREATE INDEX TMP_JOB_IDX3 ON #TMP_PUR (DISB_WHS)
+CREATE INDEX TMP_JOB_IDX4 ON #TMP_PUR (VENDOR_CD)
+CREATE INDEX TMP_JOB_IDX5 ON #TMP_PUR (DATE_ID)
+--SELECT * FROM #TMP_PUR
 
 DECLARE @dat_num_col NVARCHAR(MAX)
 DECLARE @dat_min_col NVARCHAR(MAX)
 DECLARE @dat_max_col NVARCHAR(MAX)
 DECLARE @pln_qty_col NVARCHAR(MAX)
-DECLARE @ord_qty_col NVARCHAR(MAX)
-DECLARE @job_qty_col NVARCHAR(MAX)
+DECLARE @pur_qty_col NVARCHAR(MAX)
 DECLARE @pln_qty_val NVARCHAR(MAX)
-DECLARE @ord_qty_val NVARCHAR(MAX)
-DECLARE @job_qty_val NVARCHAR(MAX)
+DECLARE @pur_qty_val NVARCHAR(MAX)
 DECLARE @sql_str NVARCHAR(MAX)
 
 --月（週）単位のカレンダの列名（二の統合）
@@ -480,85 +458,77 @@ DECLARE @sql_str NVARCHAR(MAX)
 --      ,@dat_min_col = ISNULL(@dat_min_col + ',', '') + QUOTENAME('MIN_'+CAST(DATE_ID AS VARCHAR(8)))
 --      ,@dat_max_col = ISNULL(@dat_max_col + ',', '') + QUOTENAME('MAX_'+CAST(DATE_ID AS VARCHAR(8)))
 --      ,@pln_qty_col = ISNULL(@pln_qty_col + ',', '') + QUOTENAME('PLN_'+CAST(DATE_ID AS VARCHAR(8)))
---      ,@ord_qty_col = ISNULL(@ord_qty_col + ',', '') + QUOTENAME('ORD_'+CAST(DATE_ID AS VARCHAR(8)))
---      ,@job_qty_col = ISNULL(@job_qty_col + ',', '') + QUOTENAME('JOB_'+CAST(DATE_ID AS VARCHAR(8)))
+--      ,@pur_qty_col = ISNULL(@pur_qty_col + ',', '') + QUOTENAME('PUR_'+CAST(DATE_ID AS VARCHAR(8)))
 --      ,@pln_qty_val = ISNULL(@pln_qty_val + ',', '') + 'ISNULL(' + QUOTENAME('PLN_'+CAST(DATE_ID AS VARCHAR(8))) + ',0) AS ' + QUOTENAME('PLN_'+CAST(DATE_ID AS VARCHAR(8)))
---      ,@ord_qty_val = ISNULL(@ord_qty_val + ',', '') + 'ISNULL(' + QUOTENAME('ORD_'+CAST(DATE_ID AS VARCHAR(8))) + ',0) AS ' + QUOTENAME('ORD_'+CAST(DATE_ID AS VARCHAR(8)))
---      ,@job_qty_val = ISNULL(@job_qty_val + ',', '') + 'ISNULL(' + QUOTENAME('JOB_'+CAST(DATE_ID AS VARCHAR(8))) + ',0) AS ' + QUOTENAME('JOB_'+CAST(DATE_ID AS VARCHAR(8)))
+--      ,@pur_qty_val = ISNULL(@pur_qty_val + ',', '') + 'ISNULL(' + QUOTENAME('PUR_'+CAST(DATE_ID AS VARCHAR(8))) + ',0) AS ' + QUOTENAME('PUR_'+CAST(DATE_ID AS VARCHAR(8)))
 --FROM #TMP_CAL
 --SSRS固定の表現
 SET @dat_num_col = 'DAT_1, DAT_2, DAT_3, DAT_4, DAT_5, DAT_6, DAT_7, DAT_8'
 SET @dat_min_col = 'MIN_1, MIN_2, MIN_3, MIN_4, MIN_5, MIN_6, MIN_7, MIN_8'
 SET @dat_max_col = 'MAX_1, MAX_2, MAX_3, MAX_4, MAX_5, MAX_6, MAX_7, MAX_8'
 SET @pln_qty_col = 'PLN_1, PLN_2, PLN_3, PLN_4, PLN_5, PLN_6, PLN_7, PLN_8'
-SET @ord_qty_col = 'ORD_1, ORD_2, ORD_3, ORD_4, ORD_5, ORD_6, ORD_7, ORD_8'
-SET @job_qty_col = 'JOB_1, JOB_2, JOB_3, JOB_4, JOB_5, JOB_6, JOB_7, JOB_8'
+SET @pur_qty_col = 'PUR_1, PUR_2, PUR_3, PUR_4, PUR_5, PUR_6, PUR_7, PUR_8'
 SET @pln_qty_val = 'ISNULL(PLN_1,0) PLN_1, ISNULL(PLN_2,0) PLN_2, ISNULL(PLN_3,0) PLN_3, ISNULL(PLN_4,0) PLN_4, ISNULL(PLN_5,0) PLN_5, ISNULL(PLN_6,0) PLN_6, ISNULL(PLN_7,0) PLN_7, ISNULL(PLN_8,0) PLN_8'
-SET @ord_qty_val = 'ISNULL(ORD_1,0) ORD_1, ISNULL(ORD_2,0) ORD_2, ISNULL(ORD_3,0) ORD_3, ISNULL(ORD_4,0) ORD_4, ISNULL(ORD_5,0) ORD_5, ISNULL(ORD_6,0) ORD_6, ISNULL(ORD_7,0) ORD_7, ISNULL(ORD_8,0) ORD_8'
-SET @job_qty_val = 'ISNULL(JOB_1,0) JOB_1, ISNULL(JOB_2,0) JOB_2, ISNULL(JOB_3,0) JOB_3, ISNULL(JOB_4,0) JOB_4, ISNULL(JOB_5,0) JOB_5, ISNULL(JOB_6,0) JOB_6, ISNULL(JOB_7,0) JOB_7, ISNULL(JOB_8,0) JOB_8'
+SET @pur_qty_val = 'ISNULL(PUR_1,0) PUR_1, ISNULL(PUR_2,0) PUR_2, ISNULL(PUR_3,0) PUR_3, ISNULL(PUR_4,0) PUR_4, ISNULL(PUR_5,0) PUR_5, ISNULL(PUR_6,0) PUR_6, ISNULL(PUR_7,0) PUR_7, ISNULL(PUR_8,0) PUR_8'
 
 --PRINT (@dat_num_col)
 --PRINT (@dat_min_col)
 --PRINT (@dat_max_col)
 --PRINT (@pln_qty_col)
---PRINT (@ord_qty_col)
---PRINT (@job_qty_col)
+--PRINT (@pur_qty_col)
 --PRINT (@pln_qty_val)
---PRINT (@ord_qty_val)
---PRINT (@job_qty_val)
+--PRINT (@pur_qty_val)
 
 --SQLの合成,ライン変換列の処理[PIVOT]
 SET @sql_str = '
     SELECT  PVT.DATE_TYPE_TXT,
-            PVT.SCH_ID, PVT.SCH_NAME, PVT.ITEM_NO,  PVT.ITEM_DESC, PVT.WS_CD, PVT.WS_DESC,
-            PVT.MFG_LT, PVT.DISB_WHS, PVT.WHS_DESC, PVT.INV_BAL,   PVT.UMSR_NAME, ' + '
+            PVT.BUYER_CD,       PVT.BUYER_NAME,     PVT.SCH_ID,        PVT.SCH_NAME,
+            PVT.VENDOR_CD,      PVT.VENDOR_NAME,    PVT.DELV_LT,
+            PVT.ITEM_NO,        PVT.ITEM_DESC,      PVT.DISB_WHS,      PVT.WHS_DESC,
+            PVT.TENTATIVE_PRC,  PVT.TENTATIVE_CUR,  PVT.TEN_CUR_NAME,
+            PVT.ACT_PRC,        PVT.ACT_CUR,        PVT.ACT_CUR_NAME,
+            PVT.COM_PRC_FLAG,   PVT.UMSR,           PVT.INV_BAL,       PVT.ITEM_UMSR, ' + '
             ' + @pln_qty_val + ', ' + '
-            ' + @ord_qty_val + ', ' + '
-            ' + @job_qty_val + ', ' + '
+            ' + @pur_qty_val + ', ' + '
             ' + @dat_num_col + ', ' + '
             ' + @dat_min_col + ', ' + '
             ' + @dat_max_col + '
     FROM (         --PLAN_QTY 所要数量
         SELECT ''PLN_'' + CAST(DATE_ID AS VARCHAR(8)) AS DATE_ID_COL, DATE_TYPE_TXT,
-               SCH_ID, SCH_NAME, ITEM_NO, ITEM_DESC, WS_CD, WS_DESC, 
-               MFG_LT, DISB_WHS, WHS_DESC, INV_BAL, UMSR_NAME, PLAN_QTY FROM #TMP_JOB
+               BUYER_CD,       BUYER_NAME,     SCH_ID,        SCH_NAME,
+               VENDOR_CD,      VENDOR_NAME,    DELV_LT,
+               ITEM_NO,        ITEM_DESC,      DISB_WHS,      WHS_DESC,
+               TENTATIVE_PRC,  TENTATIVE_CUR,  TEN_CUR_NAME,
+               ACT_PRC,        ACT_CUR,        ACT_CUR_NAME,
+               COM_PRC_FLAG,   UMSR,           INV_BAL,       ITEM_UMSR,
+               PLAN_QTY FROM #TMP_PUR
         ) PLN
         PIVOT
         ( SUM(PLAN_QTY) 
           FOR DATE_ID_COL IN (' + @pln_qty_col +')
     ) AS PVT
-    CROSS APPLY (  --ORDER_QTY 計画数量
+    CROSS APPLY (  --PO_QTY 発注残数量
         SELECT * 
         FROM ( 
-              SELECT ''ORD_'' + CAST(DATE_ID AS VARCHAR(8)) AS DATE_ID_COL, DATE_TYPE_TXT,
-                     SCH_ID, SCH_NAME, ITEM_NO, ITEM_DESC, WS_CD, WS_DESC, 
-                     MFG_LT, DISB_WHS, WHS_DESC, INV_BAL, UMSR_NAME, ORDER_QTY FROM #TMP_JOB
-             ) ORD
+              SELECT ''PUR_'' + CAST(DATE_ID AS VARCHAR(8)) AS DATE_ID_COL, DATE_TYPE_TXT,
+                     BUYER_CD,       BUYER_NAME,     SCH_ID,        SCH_NAME,
+                     VENDOR_CD,      VENDOR_NAME,    DELV_LT,
+                     ITEM_NO,        ITEM_DESC,      DISB_WHS,      WHS_DESC,
+                     TENTATIVE_PRC,  TENTATIVE_CUR,  TEN_CUR_NAME,
+                     ACT_PRC,        ACT_CUR,        ACT_CUR_NAME,
+                     COM_PRC_FLAG,   UMSR,           INV_BAL,       ITEM_UMSR,
+                     PO_QTY FROM #TMP_PUR
+             ) PO
              PIVOT
-             ( SUM(ORDER_QTY) 
-               FOR DATE_ID_COL IN (' + @ord_qty_col +')
-              ) AS ORD_PVT
-        WHERE PVT.SCH_ID=ORD_PVT.SCH_ID 
-        AND   PVT.ITEM_NO=ORD_PVT.ITEM_NO
-        AND   PVT.DISB_WHS=ORD_PVT.DISB_WHS
-        AND   PVT.WS_CD=ORD_PVT.WS_CD
+             ( SUM(PO_QTY) 
+               FOR DATE_ID_COL IN (' + @pur_qty_col +')
+              ) AS PO_PVT
+        WHERE PVT.BUYER_CD=PO_PVT.BUYER_CD
+        AND   PVT.SCH_ID=PO_PVT.SCH_ID 
+        AND   PVT.ITEM_NO=PO_PVT.ITEM_NO
+        AND   PVT.DISB_WHS=PO_PVT.DISB_WHS
+        AND   PVT.VENDOR_CD=PO_PVT.VENDOR_CD
     ) T1
-    CROSS APPLY (  --JOB_ORDER_QTY 指示残数量
-        SELECT * 
-        FROM (
-              SELECT ''JOB_'' + CAST(DATE_ID AS VARCHAR(8)) AS DATE_ID_COL, DATE_TYPE_TXT,
-                     SCH_ID, SCH_NAME, ITEM_NO, ITEM_DESC, WS_CD, WS_DESC, 
-                     MFG_LT, DISB_WHS, WHS_DESC, INV_BAL, UMSR_NAME, JOB_ORDER_QTY FROM #TMP_JOB
-             ) JOB
-             PIVOT
-             ( SUM(JOB_ORDER_QTY) 
-               FOR DATE_ID_COL IN (' + @job_qty_col +')
-              ) AS JOB_PVT
-        WHERE PVT.SCH_ID=JOB_PVT.SCH_ID 
-        AND   PVT.ITEM_NO=JOB_PVT.ITEM_NO
-        AND   PVT.DISB_WHS=JOB_PVT.DISB_WHS
-        AND   PVT.WS_CD=JOB_PVT.WS_CD
-    ) T2
     CROSS APPLY (  --DATE_WEEK_CYM
         SELECT * 
         FROM ( 
@@ -595,12 +565,19 @@ SET @sql_str = '
     ORDER BY PVT.ITEM_NO'
 
 --PRINT (@sql_str)
-EXEC (@sql_str)
-</CommandText>
+EXEC (@sql_str)</CommandText>
       </Query>
       <Fields>
         <Field Name="DATE_TYPE_TXT">
           <DataField>DATE_TYPE_TXT</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="BUYER_CD">
+          <DataField>BUYER_CD</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="BUYER_NAME">
+          <DataField>BUYER_NAME</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="SCH_ID">
@@ -611,6 +588,18 @@ EXEC (@sql_str)
           <DataField>SCH_NAME</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
+        <Field Name="VENDOR_CD">
+          <DataField>VENDOR_CD</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="VENDOR_NAME">
+          <DataField>VENDOR_NAME</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="DELV_LT">
+          <DataField>DELV_LT</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
         <Field Name="ITEM_NO">
           <DataField>ITEM_NO</DataField>
           <rd:TypeName>System.String</rd:TypeName>
@@ -618,18 +607,6 @@ EXEC (@sql_str)
         <Field Name="ITEM_DESC">
           <DataField>ITEM_DESC</DataField>
           <rd:TypeName>System.String</rd:TypeName>
-        </Field>
-        <Field Name="WS_CD">
-          <DataField>WS_CD</DataField>
-          <rd:TypeName>System.String</rd:TypeName>
-        </Field>
-        <Field Name="WS_DESC">
-          <DataField>WS_DESC</DataField>
-          <rd:TypeName>System.String</rd:TypeName>
-        </Field>
-        <Field Name="MFG_LT">
-          <DataField>MFG_LT</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
         <Field Name="DISB_WHS">
           <DataField>DISB_WHS</DataField>
@@ -639,12 +616,44 @@ EXEC (@sql_str)
           <DataField>WHS_DESC</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
+        <Field Name="TENTATIVE_PRC">
+          <DataField>TENTATIVE_PRC</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="TENTATIVE_CUR">
+          <DataField>TENTATIVE_CUR</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="TEN_CUR_NAME">
+          <DataField>TEN_CUR_NAME</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="ACT_PRC">
+          <DataField>ACT_PRC</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="ACT_CUR">
+          <DataField>ACT_CUR</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="ACT_CUR_NAME">
+          <DataField>ACT_CUR_NAME</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="COM_PRC_FLAG">
+          <DataField>COM_PRC_FLAG</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="UMSR">
+          <DataField>UMSR</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
         <Field Name="INV_BAL">
           <DataField>INV_BAL</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
-        <Field Name="UMSR_NAME">
-          <DataField>UMSR_NAME</DataField>
+        <Field Name="ITEM_UMSR">
+          <DataField>ITEM_UMSR</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="PLN_1">
@@ -679,68 +688,36 @@ EXEC (@sql_str)
           <DataField>PLN_8</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
-        <Field Name="ORD_1">
-          <DataField>ORD_1</DataField>
+        <Field Name="PUR_1">
+          <DataField>PUR_1</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
-        <Field Name="ORD_2">
-          <DataField>ORD_2</DataField>
+        <Field Name="PUR_2">
+          <DataField>PUR_2</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
-        <Field Name="ORD_3">
-          <DataField>ORD_3</DataField>
+        <Field Name="PUR_3">
+          <DataField>PUR_3</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
-        <Field Name="ORD_4">
-          <DataField>ORD_4</DataField>
+        <Field Name="PUR_4">
+          <DataField>PUR_4</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
-        <Field Name="ORD_5">
-          <DataField>ORD_5</DataField>
+        <Field Name="PUR_5">
+          <DataField>PUR_5</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
-        <Field Name="ORD_6">
-          <DataField>ORD_6</DataField>
+        <Field Name="PUR_6">
+          <DataField>PUR_6</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
-        <Field Name="ORD_7">
-          <DataField>ORD_7</DataField>
+        <Field Name="PUR_7">
+          <DataField>PUR_7</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
-        <Field Name="ORD_8">
-          <DataField>ORD_8</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="JOB_1">
-          <DataField>JOB_1</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="JOB_2">
-          <DataField>JOB_2</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="JOB_3">
-          <DataField>JOB_3</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="JOB_4">
-          <DataField>JOB_4</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="JOB_5">
-          <DataField>JOB_5</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="JOB_6">
-          <DataField>JOB_6</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="JOB_7">
-          <DataField>JOB_7</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="JOB_8">
-          <DataField>JOB_8</DataField>
+        <Field Name="PUR_8">
+          <DataField>PUR_8</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
         <Field Name="DAT_1">
@@ -885,7 +862,7 @@ EXEC (@sql_str)
               </TablixColumns>
               <TablixRows>
                 <TablixRow>
-                  <Height>1cm</Height>
+                  <Height>2cm</Height>
                   <TablixCells>
                     <TablixCell>
                       <CellContents>
@@ -899,17 +876,14 @@ EXEC (@sql_str)
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Label>P_SCH_ID</Label>
-                                      <Value>=Code.GetLabel(Parameters!LABELS,"rpt_Sch")
-+": "+Fields!SCH_ID.Value
-+" "+Fields!SCH_NAME.Value
-+"        "</Value>
+                                      <Label>P_BUYER</Label>
+                                      <Value>=IIf(Parameters!BUYER_CD.Value="",""
+,Code.GetLabel(Parameters!LABELS,"rpt_Buyer")
++": "+Parameters!BUYER_CD.Value
++" "+Fields!BUYER_NAME.Value
+)</Value>
                                       <Style>
-                                        <FontFamily>=Switch(Parameters!LANG.Value = 1, "MS Gothic"
-,Parameters!LANG.Value = 2, "MS Gothic"
-,Parameters!LANG.Value = 3, "宋体"
-,Parameters!LANG.Value = 4, "Arial Unicode MS"
-)</FontFamily>
+                                        <FontFamily>MS Gothic</FontFamily>
                                         <FontWeight>Normal</FontWeight>
                                       </Style>
                                     </TextRun>
@@ -919,8 +893,122 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <Top>0.1cm</Top>
                               <Left>0.2cm</Left>
-                              <Height>0.6cm</Height>
+                              <Height>0.5cm</Height>
                               <Width>13.82826cm</Width>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox107">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Label>P_SCH</Label>
+                                      <Value>=IIf(Parameters!SCH_ID.Value="",""
+,Code.GetLabel(Parameters!LABELS,"rpt_Sch")
++": "+Parameters!SCH_ID.Value
++" "+Fields!SCH_NAME.Value
+)</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                        <Format>#,0.00;-#,0.00</Format>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.7cm</Top>
+                              <Left>0.2cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>13.82826cm</Width>
+                              <ZIndex>1</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox112">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Label>P_CATG</Label>
+                                      <Value>=IIf(Parameters!CATG_CD.Value="",""
+,Code.GetLabel(Parameters!LABELS,"rpt_Catg")
++": "+Parameters!CATG_CD.Value
++"        "
+)</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                        <Format>#,0.00;-#,0.00</Format>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>1.3cm</Top>
+                              <Left>0.2cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>6.43812cm</Width>
+                              <ZIndex>2</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox116">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Label>P_VENDOR</Label>
+                                      <Value>=IIf(Parameters!VENDOR_CD.Value="",""
+,Code.GetLabel(Parameters!LABELS,"rpt_Vendor")
++": "+Parameters!VENDOR_CD.Value
++" "+Fields!VENDOR_NAME.Value
+)</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                        <Format>#,0.00;-#,0.00</Format>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>1.3cm</Top>
+                              <Left>7.04233cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>6.98593cm</Width>
+                              <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -1075,8 +1163,8 @@ EXEC (@sql_str)
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Label>H_MFG_LT</Label>
-                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_Mfg_LT")</Value>
+                                  <Label>H_DELV_LT</Label>
+                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_Delv_LT")</Value>
                                   <Style>
                                     <FontFamily>MS Gothic</FontFamily>
                                   </Style>
@@ -1580,7 +1668,7 @@ EXEC (@sql_str)
                   </TablixCells>
                 </TablixRow>
                 <TablixRow>
-                  <Height>2.5cm</Height>
+                  <Height>1.9cm</Height>
                   <TablixCells>
                     <TablixCell>
                       <CellContents>
@@ -1593,8 +1681,8 @@ EXEC (@sql_str)
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Label>H_WS</Label>
-                                      <Value>=Code.GetLabel(Parameters!LABELS,"rpt_Ws")</Value>
+                                      <Label>H_VD</Label>
+                                      <Value>=Code.GetLabel(Parameters!LABELS,"rpt_Vendor")</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                       </Style>
@@ -1606,7 +1694,7 @@ EXEC (@sql_str)
                                       </Style>
                                     </TextRun>
                                     <TextRun>
-                                      <Value>=Fields!WS_CD.Value</Value>
+                                      <Value>=Fields!VENDOR_CD.Value</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                       </Style>
@@ -1618,7 +1706,7 @@ EXEC (@sql_str)
                                       </Style>
                                     </TextRun>
                                     <TextRun>
-                                      <Value>=Fields!WS_DESC.Value</Value>
+                                      <Value>=Fields!VENDOR_NAME.Value</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                       </Style>
@@ -1748,7 +1836,7 @@ EXEC (@sql_str)
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.9cm</Top>
+                              <Top>1.3cm</Top>
                               <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
                               <Width>4.2cm</Width>
@@ -1796,7 +1884,7 @@ EXEC (@sql_str)
                                       </Style>
                                     </TextRun>
                                     <TextRun>
-                                      <Value>=Fields!UMSR_NAME.Value</Value>
+                                      <Value>=Fields!ITEM_UMSR.Value</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                       </Style>
@@ -1806,7 +1894,7 @@ EXEC (@sql_str)
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.9cm</Top>
+                              <Top>1.3cm</Top>
                               <Left>4.39909cm</Left>
                               <Height>0.5cm</Height>
                               <Width>4.01758cm</Width>
@@ -1847,7 +1935,7 @@ EXEC (@sql_str)
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Value>=Fields!MFG_LT.Value</Value>
+                                      <Value>=Fields!DELV_LT.Value</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                         <Format>#,0.00;-#,0.00</Format>
@@ -1863,7 +1951,7 @@ EXEC (@sql_str)
                               <Top>0.1cm</Top>
                               <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>2.3cm</Width>
+                              <Width>2.2cm</Width>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -1881,8 +1969,8 @@ EXEC (@sql_str)
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Label>H_PLANQTY</Label>
-                                      <Value>=Code.GetLabel(Parameters!LABELS,"rpt_PLANQTY")</Value>
+                                      <Label>H_POQTY</Label>
+                                      <Value>=Code.GetLabel(Parameters!LABELS,"rpt_POQTY")</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                       </Style>
@@ -1895,41 +1983,8 @@ EXEC (@sql_str)
                               <Top>0.7cm</Top>
                               <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>2.3cm</Width>
+                              <Width>2.2cm</Width>
                               <ZIndex>1</ZIndex>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                            <Textbox Name="Textbox103">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>H_ORDQTY</Label>
-                                      <Value>=Code.GetLabel(Parameters!LABELS,"rpt_ORDERQTY")</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.3cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>2.3cm</Width>
-                              <ZIndex>2</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -1947,8 +2002,8 @@ EXEC (@sql_str)
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Label>H_JOBQTY</Label>
-                                      <Value>=Code.GetLabel(Parameters!LABELS,"rpt_JOBORDERQTY")</Value>
+                                      <Label>H_PLNQTY</Label>
+                                      <Value>=Code.GetLabel(Parameters!LABELS,"rpt_PLANQTY")</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                       </Style>
@@ -1958,11 +2013,11 @@ EXEC (@sql_str)
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.9cm</Top>
+                              <Top>1.3cm</Top>
                               <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>2.3cm</Width>
-                              <ZIndex>3</ZIndex>
+                              <Width>2.2cm</Width>
+                              <ZIndex>2</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -2030,8 +2085,8 @@ EXEC (@sql_str)
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Label>ORD_1</Label>
-                                      <Value>=IIf(Fields!ORD_1.Value=0, NOTHING, Fields!ORD_1.Value)</Value>
+                                      <Label>PUR_1</Label>
+                                      <Value>=IIf(Fields!PUR_1.Value=0, NOTHING, Fields!PUR_1.Value)</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                         <Format>#,0.00;-#,0.00</Format>
@@ -2047,40 +2102,6 @@ EXEC (@sql_str)
                               <Height>0.5cm</Height>
                               <Width>1.9cm</Width>
                               <ZIndex>1</ZIndex>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                            <Textbox Name="Textbox107">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>JOB_1</Label>
-                                      <Value>=IIf(Fields!JOB_1.Value=0, NOTHING, Fields!JOB_1.Value)</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.3cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.9cm</Width>
-                              <ZIndex>2</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -2110,11 +2131,11 @@ EXEC (@sql_str)
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.9cm</Top>
+                              <Top>1.3cm</Top>
                               <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
                               <Width>1.9cm</Width>
-                              <ZIndex>3</ZIndex>
+                              <ZIndex>2</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -2161,7 +2182,7 @@ EXEC (@sql_str)
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.9cm</Top>
+                              <Top>1.3cm</Top>
                               <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
                               <Width>1.9cm</Width>
@@ -2216,8 +2237,8 @@ EXEC (@sql_str)
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Label>ORD_2</Label>
-                                      <Value>=IIf(Fields!ORD_2.Value=0, NOTHING, Fields!ORD_2.Value)</Value>
+                                      <Label>PUR_2</Label>
+                                      <Value>=IIf(Fields!PUR_2.Value=0, NOTHING, Fields!PUR_2.Value)</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                         <Format>#,0.00;-#,0.00</Format>
@@ -2233,40 +2254,6 @@ EXEC (@sql_str)
                               <Height>0.5cm</Height>
                               <Width>1.9cm</Width>
                               <ZIndex>2</ZIndex>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                            <Textbox Name="Textbox112">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>JOB_2</Label>
-                                      <Value>=IIf(Fields!JOB_2.Value=0, NOTHING, Fields!JOB_2.Value)</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.3cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.9cm</Width>
-                              <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -2313,7 +2300,7 @@ EXEC (@sql_str)
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.9cm</Top>
+                              <Top>1.3cm</Top>
                               <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
                               <Width>1.9cm</Width>
@@ -2368,8 +2355,8 @@ EXEC (@sql_str)
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Label>ORD_3</Label>
-                                      <Value>=IIf(Fields!ORD_3.Value=0, NOTHING, Fields!ORD_3.Value)</Value>
+                                      <Label>PUR_3</Label>
+                                      <Value>=IIf(Fields!PUR_3.Value=0, NOTHING, Fields!PUR_3.Value)</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                         <Format>#,0.00;-#,0.00</Format>
@@ -2385,40 +2372,6 @@ EXEC (@sql_str)
                               <Height>0.5cm</Height>
                               <Width>1.9cm</Width>
                               <ZIndex>2</ZIndex>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                            <Textbox Name="Textbox116">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>JOB_3</Label>
-                                      <Value>=IIf(Fields!JOB_3.Value=0, NOTHING, Fields!JOB_3.Value)</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.3cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.9cm</Width>
-                              <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -2465,7 +2418,7 @@ EXEC (@sql_str)
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.9cm</Top>
+                              <Top>1.3cm</Top>
                               <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
                               <Width>1.9cm</Width>
@@ -2520,8 +2473,8 @@ EXEC (@sql_str)
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Label>ORD_4</Label>
-                                      <Value>=IIf(Fields!ORD_4.Value=0, NOTHING, Fields!ORD_4.Value)</Value>
+                                      <Label>PUR_4</Label>
+                                      <Value>=IIf(Fields!PUR_4.Value=0, NOTHING, Fields!PUR_4.Value)</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                         <Format>#,0.00;-#,0.00</Format>
@@ -2537,40 +2490,6 @@ EXEC (@sql_str)
                               <Height>0.5cm</Height>
                               <Width>1.9cm</Width>
                               <ZIndex>2</ZIndex>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                            <Textbox Name="Textbox120">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>JOB_4</Label>
-                                      <Value>=IIf(Fields!JOB_4.Value=0, NOTHING, Fields!JOB_4.Value)</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.3cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.9cm</Width>
-                              <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -2617,7 +2536,7 @@ EXEC (@sql_str)
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.9cm</Top>
+                              <Top>1.3cm</Top>
                               <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
                               <Width>1.9cm</Width>
@@ -2672,8 +2591,8 @@ EXEC (@sql_str)
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Label>ORD_5</Label>
-                                      <Value>=IIf(Fields!ORD_5.Value=0, NOTHING, Fields!ORD_5.Value)</Value>
+                                      <Label>PUR_5</Label>
+                                      <Value>=IIf(Fields!PUR_5.Value=0, NOTHING, Fields!PUR_5.Value)</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                         <Format>#,0.00;-#,0.00</Format>
@@ -2689,40 +2608,6 @@ EXEC (@sql_str)
                               <Height>0.5cm</Height>
                               <Width>1.9cm</Width>
                               <ZIndex>2</ZIndex>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                            <Textbox Name="Textbox124">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>JOB_5</Label>
-                                      <Value>=IIf(Fields!JOB_5.Value=0, NOTHING, Fields!JOB_5.Value)</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.3cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.9cm</Width>
-                              <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -2769,7 +2654,7 @@ EXEC (@sql_str)
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.9cm</Top>
+                              <Top>1.3cm</Top>
                               <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
                               <Width>1.9cm</Width>
@@ -2824,8 +2709,8 @@ EXEC (@sql_str)
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Label>ORD_6</Label>
-                                      <Value>=IIf(Fields!ORD_6.Value=0, NOTHING, Fields!ORD_6.Value)</Value>
+                                      <Label>PUR_6</Label>
+                                      <Value>=IIf(Fields!PUR_6.Value=0, NOTHING, Fields!PUR_6.Value)</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                         <Format>#,0.00;-#,0.00</Format>
@@ -2841,40 +2726,6 @@ EXEC (@sql_str)
                               <Height>0.5cm</Height>
                               <Width>1.9cm</Width>
                               <ZIndex>2</ZIndex>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                            <Textbox Name="Textbox128">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>JOB_6</Label>
-                                      <Value>=IIf(Fields!JOB_6.Value=0, NOTHING, Fields!JOB_6.Value)</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.3cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.9cm</Width>
-                              <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -2921,7 +2772,7 @@ EXEC (@sql_str)
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.9cm</Top>
+                              <Top>1.3cm</Top>
                               <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
                               <Width>1.9cm</Width>
@@ -2976,8 +2827,8 @@ EXEC (@sql_str)
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Label>ORD_7</Label>
-                                      <Value>=IIf(Fields!ORD_7.Value=0, NOTHING, Fields!ORD_7.Value)</Value>
+                                      <Label>PUR_7</Label>
+                                      <Value>=IIf(Fields!PUR_7.Value=0, NOTHING, Fields!PUR_7.Value)</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                         <Format>#,0.00;-#,0.00</Format>
@@ -2993,40 +2844,6 @@ EXEC (@sql_str)
                               <Height>0.5cm</Height>
                               <Width>1.9cm</Width>
                               <ZIndex>2</ZIndex>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                            <Textbox Name="Textbox132">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>JOB_7</Label>
-                                      <Value>=IIf(Fields!JOB_7.Value=0, NOTHING, Fields!JOB_7.Value)</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.3cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.9cm</Width>
-                              <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -3073,7 +2890,7 @@ EXEC (@sql_str)
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.9cm</Top>
+                              <Top>1.3cm</Top>
                               <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
                               <Width>1.9cm</Width>
@@ -3128,8 +2945,8 @@ EXEC (@sql_str)
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Label>ORD_8</Label>
-                                      <Value>=IIf(Fields!ORD_8.Value=0, NOTHING, Fields!ORD_8.Value)</Value>
+                                      <Label>PUR_8</Label>
+                                      <Value>=IIf(Fields!PUR_8.Value=0, NOTHING, Fields!PUR_8.Value)</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                         <Format>#,0.00;-#,0.00</Format>
@@ -3145,40 +2962,6 @@ EXEC (@sql_str)
                               <Height>0.5cm</Height>
                               <Width>1.9cm</Width>
                               <ZIndex>2</ZIndex>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                            <Textbox Name="Textbox136">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>JOB_8</Label>
-                                      <Value>=IIf(Fields!JOB_8.Value=0, NOTHING, Fields!JOB_8.Value)</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.3cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.9cm</Width>
-                              <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -3237,50 +3020,42 @@ EXEC (@sql_str)
                       <Variable Name="SP_QTY_1">
                         <Value>=Fields!INV_BAL.Value 
 - Fields!PLN_1.Value 
-+ Fields!ORD_1.Value 
-+ Fields!JOB_1.Value</Value>
++ Fields!PUR_1.Value</Value>
                       </Variable>
                       <Variable Name="SP_QTY_2">
                         <Value>=Variables!SP_QTY_1.Value
 - Fields!PLN_2.Value 
-+ Fields!ORD_2.Value 
-+ Fields!JOB_2.Value</Value>
++ Fields!PUR_2.Value</Value>
                       </Variable>
                       <Variable Name="SP_QTY_3">
                         <Value>=Variables!SP_QTY_2.Value
 - Fields!PLN_3.Value 
-+ Fields!ORD_3.Value 
-+ Fields!JOB_3.Value</Value>
++ Fields!PUR_3.Value</Value>
                       </Variable>
                       <Variable Name="SP_QTY_4">
                         <Value>=Variables!SP_QTY_3.Value
 - Fields!PLN_4.Value 
-+ Fields!ORD_4.Value 
-+ Fields!JOB_4.Value</Value>
++ Fields!PUR_4.Value</Value>
                       </Variable>
                       <Variable Name="SP_QTY_5">
                         <Value>=Variables!SP_QTY_3.Value
 - Fields!PLN_4.Value 
-+ Fields!ORD_5.Value 
-+ Fields!JOB_5.Value</Value>
++ Fields!PUR_5.Value</Value>
                       </Variable>
                       <Variable Name="SP_QTY_6">
                         <Value>=Variables!SP_QTY_5.Value
 - Fields!PLN_6.Value 
-+ Fields!ORD_6.Value 
-+ Fields!JOB_6.Value</Value>
++ Fields!PUR_6.Value</Value>
                       </Variable>
                       <Variable Name="SP_QTY_7">
                         <Value>=Variables!SP_QTY_6.Value
 - Fields!PLN_7.Value 
-+ Fields!ORD_7.Value 
-+ Fields!JOB_7.Value</Value>
++ Fields!PUR_7.Value</Value>
                       </Variable>
                       <Variable Name="SP_QTY_8">
                         <Value>=Variables!SP_QTY_7.Value
 - Fields!PLN_8.Value 
-+ Fields!ORD_8.Value 
-+ Fields!JOB_8.Value</Value>
++ Fields!PUR_8.Value</Value>
                       </Variable>
                     </Variables>
                   </Group>
@@ -3292,10 +3067,10 @@ EXEC (@sql_str)
             </TablixRowHierarchy>
             <RepeatColumnHeaders>true</RepeatColumnHeaders>
             <RepeatRowHeaders>true</RepeatRowHeaders>
-            <DataSetName>MfgManJOPlanRptList</DataSetName>
+            <DataSetName>PurManPOPlanRptList</DataSetName>
             <Top>0.2cm</Top>
             <Left>0.34078cm</Left>
-            <Height>4.5cm</Height>
+            <Height>4.9cm</Height>
             <Width>27.87131cm</Width>
             <Style>
               <Border>
@@ -3304,7 +3079,7 @@ EXEC (@sql_str)
             </Style>
           </Tablix>
         </ReportItems>
-        <Height>2.18125in</Height>
+        <Height>2.0875in</Height>
         <Style />
       </Body>
       <Width>11.18493in</Width>
@@ -3629,7 +3404,7 @@ EXEC (@sql_str)
       <Nullable>true</Nullable>
       <DefaultValue>
         <Values>
-          <Value>MfgManJOPlanRpt_frmMain</Value>
+          <Value>PurManPOPlanRpt_frmMain</Value>
         </Values>
       </DefaultValue>
       <AllowBlank>true</AllowBlank>
@@ -3662,7 +3437,7 @@ EXEC (@sql_str)
       <Nullable>true</Nullable>
       <DefaultValue>
         <Values>
-          <Value>=IIf(Parameters!DATE_TYPE.Value=0, "MfgManJOPlanRpt_Week", "MfgManJOPlanRpt_Month")</Value>
+          <Value>=IIf(Parameters!DATE_TYPE.Value=0, "PurManPOPlanRpt_Week", "PurManPOPlanRpt_Month")</Value>
         </Values>
       </DefaultValue>
       <AllowBlank>true</AllowBlank>
@@ -3696,6 +3471,28 @@ EXEC (@sql_str)
       <DataType>Integer</DataType>
       <Prompt>開始週</Prompt>
     </ReportParameter>
+    <ReportParameter Name="BUYER_CD">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <DefaultValue>
+        <Values>
+          <Value />
+        </Values>
+      </DefaultValue>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>発注担当者</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="VENDOR_CD">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <DefaultValue>
+        <Values>
+          <Value />
+        </Values>
+      </DefaultValue>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>仕入先</Prompt>
+    </ReportParameter>
     <ReportParameter Name="SCH_ID">
       <DataType>String</DataType>
       <Nullable>true</Nullable>
@@ -3707,7 +3504,7 @@ EXEC (@sql_str)
       <AllowBlank>true</AllowBlank>
       <Prompt>計画担当者</Prompt>
     </ReportParameter>
-    <ReportParameter Name="WS_CD">
+    <ReportParameter Name="CATG_CD">
       <DataType>String</DataType>
       <Nullable>true</Nullable>
       <DefaultValue>
@@ -3716,7 +3513,7 @@ EXEC (@sql_str)
         </Values>
       </DefaultValue>
       <AllowBlank>true</AllowBlank>
-      <Prompt>作業区</Prompt>
+      <Prompt>分類</Prompt>
     </ReportParameter>
   </ReportParameters>
   <Code>Public Function GetLabel(P as Parameter, Label as String) as String

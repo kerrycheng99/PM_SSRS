@@ -50,6 +50,10 @@
       <FullPath>MfgJOSheetPrt_Sub.rdl</FullPath>
     </ProjectItem>
     <ProjectItem>
+      <Name>MfgManJOPlanRpt.rdl</Name>
+      <FullPath>MfgManJOPlanRpt.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
       <Name>MfgPartCollectingList_Cust.rdl</Name>
       <FullPath>MfgPartCollectingList_Cust.rdl</FullPath>
     </ProjectItem>
@@ -94,6 +98,10 @@
       <FullPath>PurInspRpt.rdl</FullPath>
     </ProjectItem>
     <ProjectItem>
+      <Name>PurManPOPlanRpt.rdl</Name>
+      <FullPath>PurManPOPlanRpt.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
       <Name>PurPOComeUpRpt.rdl</Name>
       <FullPath>PurPOComeUpRpt.rdl</FullPath>
     </ProjectItem>
@@ -118,8 +126,8 @@
       <FullPath>PurSupplySheetPrt2.rdl</FullPath>
     </ProjectItem>
     <ProjectItem>
-      <Name>MfgManJOPlanRpt.rdl</Name>
-      <FullPath>MfgManJOPlanRpt.rdl</FullPath>
+      <Name>PurFcstInq.rdl</Name>
+      <FullPath>PurFcstInq.rdl</FullPath>
     </ProjectItem>
   </Reports>
   <Configurations>

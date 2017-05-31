@@ -940,7 +940,6 @@ EXEC (@sql_str)
                           </Style>
                         </Rectangle>
                         <ColSpan>9</ColSpan>
-                        <rd:Selected>true</rd:Selected>
                       </CellContents>
                     </TablixCell>
                     <TablixCell />
@@ -1864,7 +1863,7 @@ EXEC (@sql_str)
                               <Top>0.1cm</Top>
                               <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>2.2cm</Width>
+                              <Width>2.3cm</Width>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -1896,7 +1895,7 @@ EXEC (@sql_str)
                               <Top>0.7cm</Top>
                               <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>2.2cm</Width>
+                              <Width>2.3cm</Width>
                               <ZIndex>1</ZIndex>
                               <Style>
                                 <Border>
@@ -1929,7 +1928,7 @@ EXEC (@sql_str)
                               <Top>1.3cm</Top>
                               <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>2.2cm</Width>
+                              <Width>2.3cm</Width>
                               <ZIndex>2</ZIndex>
                               <Style>
                                 <Border>
@@ -1962,7 +1961,7 @@ EXEC (@sql_str)
                               <Top>1.9cm</Top>
                               <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>2.2cm</Width>
+                              <Width>2.3cm</Width>
                               <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
@@ -2011,9 +2010,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.1cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -2044,9 +2043,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.7cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>1</ZIndex>
                               <Style>
                                 <Border>
@@ -2078,9 +2077,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.3cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>2</ZIndex>
                               <Style>
                                 <Border>
@@ -2112,9 +2111,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.9cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
@@ -2163,9 +2162,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.9cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -2196,9 +2195,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.1cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>1</ZIndex>
                               <Style>
                                 <Border>
@@ -2230,9 +2229,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.7cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>2</ZIndex>
                               <Style>
                                 <Border>
@@ -2264,9 +2263,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.3cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
@@ -2315,9 +2314,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.9cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -2348,9 +2347,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.1cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>1</ZIndex>
                               <Style>
                                 <Border>
@@ -2382,9 +2381,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.7cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>2</ZIndex>
                               <Style>
                                 <Border>
@@ -2416,9 +2415,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.3cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
@@ -2467,9 +2466,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.9cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -2500,9 +2499,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.1cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>1</ZIndex>
                               <Style>
                                 <Border>
@@ -2534,9 +2533,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.7cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>2</ZIndex>
                               <Style>
                                 <Border>
@@ -2568,9 +2567,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.3cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
@@ -2619,9 +2618,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.9cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -2652,9 +2651,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.1cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>1</ZIndex>
                               <Style>
                                 <Border>
@@ -2686,9 +2685,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.7cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>2</ZIndex>
                               <Style>
                                 <Border>
@@ -2720,9 +2719,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.3cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
@@ -2771,9 +2770,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.9cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -2804,9 +2803,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.1cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>1</ZIndex>
                               <Style>
                                 <Border>
@@ -2838,9 +2837,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.7cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>2</ZIndex>
                               <Style>
                                 <Border>
@@ -2872,9 +2871,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.3cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
@@ -2923,9 +2922,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.9cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -2956,9 +2955,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.1cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>1</ZIndex>
                               <Style>
                                 <Border>
@@ -2990,9 +2989,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.7cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>2</ZIndex>
                               <Style>
                                 <Border>
@@ -3024,9 +3023,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.3cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
@@ -3075,9 +3074,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.9cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -3108,9 +3107,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.1cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>1</ZIndex>
                               <Style>
                                 <Border>
@@ -3142,9 +3141,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.7cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>2</ZIndex>
                               <Style>
                                 <Border>
@@ -3176,9 +3175,9 @@ EXEC (@sql_str)
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.3cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>1.70208cm</Width>
+                              <Width>1.9cm</Width>
                               <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
@@ -3707,7 +3706,6 @@ EXEC (@sql_str)
       </DefaultValue>
       <AllowBlank>true</AllowBlank>
       <Prompt>計画担当者</Prompt>
-      <Hidden>true</Hidden>
     </ReportParameter>
     <ReportParameter Name="WS_CD">
       <DataType>String</DataType>
@@ -3719,7 +3717,6 @@ EXEC (@sql_str)
       </DefaultValue>
       <AllowBlank>true</AllowBlank>
       <Prompt>作業区</Prompt>
-      <Hidden>true</Hidden>
     </ReportParameter>
   </ReportParameters>
   <Code>Public Function GetLabel(P as Parameter, Label as String) as String
