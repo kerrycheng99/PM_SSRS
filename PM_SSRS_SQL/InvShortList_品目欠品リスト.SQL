@@ -1,0 +1,172 @@
+﻿--InvShortList_品目欠品リストSQL
+DECLARE @ITEM_NO VARCHAR(30) = ''
+DECLARE @SCH_ID VARCHAR(10) = ''
+DECLARE @WS_CD VARCHAR(10) = ''
+DECLARE @WHS_CD VARCHAR(MAX) = ''      --[部品出庫指示一覧表]多倉庫許可する
+DECLARE @JOC_CD VARCHAR(10) = ''
+DECLARE @SCH_DISB_BEG_DATE INT = 0
+DECLARE @SCH_DISB_END_DATE INT = 0
+
+;WITH 
+SHORTITEM AS
+(
+  SELECT
+  SCH_ID,WS_CD,WHS_CD,ITEM_NO,ITEM_DESC,ITEM_TYPE,
+  SCH_DISB_DATE,JOC_CD,SUM(PLAN_QTY) PLAN_QTY,
+  SUM(WIP_ALLOC_QTY) WIP_ALLOC_QTY,SUM(PLAN_DISB_QTY) PLAN_DISB_QTY,
+  INV_BAL,FREE_INV_BAL,
+  WIP_BAL,WIP_FREE_INV_BAL,
+  WHS_DESC,ITEM_UMSR,WS_DESC,SCH_DESC
+  FROM (
+        SELECT D.SCH_ID,D.WS_CD,D.DISB_WHS WHS_CD,D.ITEM_NO,I.ITEM_DESC,I.ITEM_TYPE,
+               D.SCH_DISB_DATE,ISNULL(INV.JOC_CD,CASE WHEN I.PO_TYPE = 4 THEN D.JOC_CD ELSE '*'
+               END) JOC_CD,D.PLAN_QTY PLAN_QTY,
+               D.WIP_ALLOC_QTY WIP_ALLOC_QTY,D.PLAN_DISB_QTY PLAN_DISB_QTY,
+               ISNULL(INV.INV_BAL,0) INV_BAL,ISNULL(INV.FREE_INV_BAL,0) FREE_INV_BAL,
+               ISNULL(INV.WIP_BAL,0) WIP_BAL,ISNULL(INV.WIP_FREE_INV_BAL,0) WIP_FREE_INV_BAL
+               ,W.WHS_DESC,S.DATA_CHAR ITEM_UMSR,WS.WS_DESC,S2.DATA_CHAR SCH_DESC
+        FROM ( SELECT SCH_ID,WS_CD,ITEM_NO,DISB_WHS,
+                      ORDER_NO,JOC_CD,SUPPLY_TYPE,SCH_DISB_DATE,
+                      ALLOC_FLAG,DEMAND_STATUS,PLAN_QTY,ITEM_UMSR,
+                      WIP_ALLOC_QTY,PLAN_DISB_QTY,SUB_GRP_CD,SUB_ACTION_FLAG,ITEM_TYPE
+               FROM DEMAND
+               WHERE ITEM_TYPE <> 99 AND DEMAND_STATUS <= 30 AND ALLOC_FLAG <> 1
+             ) D       
+        INNER JOIN ITEM_MASTER I ON D.ITEM_NO = I.ITEM_NO
+        LEFT JOIN
+                    (SELECT INV.WHS_CD, SWIP.WHS_CD SWHS_CD, WIP.WS_CD, INV.ITEM_NO,
+                        INV.JOC_CD, SWIP.SUPPLY_TYPE,
+                        SUM(ISNULL(INV.INV_BAL,0)) INV_BAL,
+                        SUM(ISNULL(INV.FREE_INV_BAL,0)) FREE_INV_BAL,
+                        SUM(ISNULL(WIP.INV_BAL,0) + ISNULL(SWIP.INV_BAL,0)) WIP_BAL,
+                        SUM(ISNULL(WIP.FREE_INV_BAL,0) + ISNULL(SWIP.FREE_INV_BAL,0)) WIP_FREE_INV_BAL
+                     FROM      (             --//倉庫在庫  
+                                 SELECT I.WHS_CD, I.ITEM_NO, I.JOC_CD,SUM(ISNULL(I.INV_BAL,0)) INV_BAL,    
+                                        SUM(ISNULL(I.INV_BAL,0) - ISNULL(I.ALLOC_QTY,0)) FREE_INV_BAL
+                                 FROM INVENTORY_DETAIL I                                                   
+                                 INNER JOIN WAREHOUSE_MASTER W                                              
+                                 ON I.WHS_CD = W.WHS_CD AND W.WHS_TYPE = 0                                  
+                                 WHERE I.INV_YM= 0 AND I.INV_WIP_TYPE= 0 AND I.INV_TYPE = 0                 
+                                 GROUP BY I.WHS_CD, I.ITEM_NO, I.JOC_CD
+                               ) INV                                
+                     LEFT JOIN (             --//現場在庫
+                                 SELECT I.WS_CD, I.ITEM_NO, I.JOC_CD,SUM(ISNULL(I.INV_BAL,0)) INV_BAL,     
+                                        SUM(ISNULL(I.INV_BAL,0) - ISNULL(I.ALLOC_QTY,0)) FREE_INV_BAL              
+                                 FROM INVENTORY_DETAIL I                                                   
+                                 WHERE I.INV_YM= 0 AND I.INV_WIP_TYPE= 1 AND I.INV_TYPE = 0                 
+                                 GROUP BY I.WS_CD, I.ITEM_NO, I.JOC_CD
+                               ) WIP                                 
+                               ON INV.ITEM_NO = WIP.ITEM_NO AND INV.JOC_CD = WIP.JOC_CD                   
+                     LEFT JOIN (             --//支給品倉庫在庫
+                                 SELECT I.WHS_CD, I.ITEM_NO, I.JOC_CD, I.SUPPLY_TYPE,
+                                        SUM(ISNULL(I.INV_BAL,0)) INV_BAL,
+                                        SUM(ISNULL(I.INV_BAL,0) - ISNULL(I.ALLOC_QTY,0)) FREE_INV_BAL
+                                 FROM INVENTORY_DETAIL I
+                                 INNER JOIN WAREHOUSE_MASTER W ON I.WHS_CD = W.WHS_CD AND W.WHS_TYPE = 2
+                                 WHERE I.INV_YM= 0 AND I.INV_WIP_TYPE= 0 AND I.INV_TYPE = 0
+                                 GROUP BY I.WHS_CD, I.ITEM_NO, I.JOC_CD, I.SUPPLY_TYPE
+                               ) SWIP
+                               ON INV.ITEM_NO = SWIP.ITEM_NO AND INV.JOC_CD = SWIP.JOC_CD
+                     GROUP BY INV.WHS_CD, SWIP.WHS_CD, WIP.WS_CD, INV.ITEM_NO,
+                              INV.JOC_CD, SWIP.SUPPLY_TYPE
+                    ) INV
+                    ON D.DISB_WHS = INV.WHS_CD AND D.ITEM_NO = INV.ITEM_NO                     
+                    AND CASE WHEN I.PO_TYPE = 4 THEN D.JOC_CD ELSE '*' END = INV.JOC_CD        
+        LEFT JOIN JOB_ORDER J ON D.ORDER_NO = J.ORDER_NO AND J.WS_CD=INV.WS_CD
+        LEFT JOIN PUR_ORDER P ON D.ORDER_NO=P.ORDER_NO
+        LEFT JOIN VENDOR_MASTER V ON P.VENDOR_CD=V.VENDOR_CD
+             AND CASE I.BOND_TYPE WHEN 1 THEN V.BOND_SUPPLY_WHS ELSE V.SUPPLY_WHS END = INV.SWHS_CD 
+             AND D.SUPPLY_TYPE=INV.SUPPLY_TYPE
+        LEFT JOIN PLANNED_ORDER PO ON ((D.ORDER_NO = PO.ORDER_NO AND PO.WS_CD=INV.WS_CD)
+             OR (D.ORDER_NO = PO.ORDER_NO AND  PO.VENDOR_CD=V.VENDOR_CD
+                 AND CASE I.BOND_TYPE WHEN 1 THEN V.BOND_SUPPLY_WHS ELSE V.SUPPLY_WHS END = INV.SWHS_CD 
+                 AND D.SUPPLY_TYPE=INV.SUPPLY_TYPE))
+        LEFT JOIN WORKSHOP_MASTER WS ON D.WS_CD=WS.WS_CD
+        LEFT JOIN SYSTEM_PARAMETER S2 ON S2.KEY01='SCH_ID' AND S2.KEY02= D.SCH_ID
+        LEFT JOIN WAREHOUSE_MASTER W ON D.DISB_WHS=W.WHS_CD
+        LEFT JOIN SYSTEM_PARAMETER S ON S.KEY01='ITEM_UMSR' AND S.KEY02= D.ITEM_UMSR
+        WHERE D.ALLOC_FLAG<>1 AND D.DEMAND_STATUS<=30
+        AND (D.SUB_GRP_CD = '' OR  (D.SUB_GRP_CD <> '' AND D.SUB_ACTION_FLAG = 1))
+        AND D.ITEM_TYPE <> '99'
+        AND ( (@ITEM_NO <> '' and (J.ITEM_NO=@ITEM_NO OR P.ITEM_NO=@ITEM_NO OR PO.ITEM_NO=@ITEM_NO)) or @ITEM_NO = '')
+        AND ( (@SCH_ID  <> '' and D.SCH_ID=@SCH_ID) or @SCH_ID = '' )
+        AND ( (@WS_CD   <> '' and D.WS_CD=@WS_CD) or @WS_CD = '' )
+        AND ( (@WHS_CD  <> '' and D.DISB_WHS IN ( @WHS_CD )) or @WHS_CD = '' )
+        AND ( (@JOC_CD  <> '' and D.JOC_CD= @JOC_CD) or @JOC_CD = '' )
+        AND ( (@SCH_DISB_BEG_DATE <> 0 and D.SCH_DISB_DATE>=@SCH_DISB_BEG_DATE) or @SCH_DISB_BEG_DATE = 0)
+        AND ( (@SCH_DISB_END_DATE <> 0 and D.SCH_DISB_DATE<=@SCH_DISB_END_DATE) or @SCH_DISB_END_DATE = 0)
+      ) G
+  GROUP BY SCH_ID,WS_CD,WHS_CD,ITEM_NO,ITEM_DESC,ITEM_TYPE,
+           SCH_DISB_DATE,JOC_CD,INV_BAL,
+           FREE_INV_BAL,WIP_BAL,WIP_FREE_INV_BAL,WHS_DESC,ITEM_UMSR,WS_DESC,SCH_DESC
+)
+
+SELECT
+    SCH_ID,        WS_CD,          WS_DESC,        WHS_CD,         WHS_DESC,
+    ITEM_NO,       SCH_DISB_DATE,  JOC_CD,         PARENT_ITEM_NO, ITEM_DESC,
+    ITEM_TYPE,     SCH_START_DATE, PARENT_JOC_CD,  PLAN_QTY,
+    ITEM_UMSR,     WIP_ALLOC_QTY,  PLAN_DISB_QTY,
+    INV_BAL,       FREE_INV_BAL,   WIP_BAL,        WIP_FREE_INV_BAL,
+    PO_UMSR,       ORDER_NO,       CHILD_FLAG 
+FROM(
+      SELECT
+          SCH_ID,        WS_CD,          WS_DESC,        WHS_CD,             WHS_DESC,
+          ITEM_NO,       SCH_DISB_DATE,  JOC_CD,         '' AS PARENT_ITEM_NO,ITEM_DESC,
+          ITEM_TYPE,     0 AS SCH_START_DATE,            '' AS PARENT_JOC_CD,PLAN_QTY,
+          ITEM_UMSR,     WIP_ALLOC_QTY, PLAN_DISB_QTY,
+          INV_BAL,       FREE_INV_BAL,   WIP_BAL,    WIP_FREE_INV_BAL,
+          '' AS PO_UMSR, '' AS ORDER_NO, 1 AS CHILD_FLAG
+      FROM SHORTITEM
+      UNION ALL SELECT
+          SHORTITEM.SCH_ID,          SHORTITEM.WS_CD,            SHORTITEM.WS_DESC,
+          SHORTITEM.WHS_CD,          SHORTITEM.WHS_DESC,         SHORTITEM.ITEM_NO,
+          SHORTITEM.SCH_DISB_DATE,   SHORTITEM.JOC_CD,
+          PUR_ORDER.ITEM_NO PARENT_ITEM_NO,                      PUR_ORDER.ITEM_DESC,
+          PUR_ORDER.ITEM_TYPE,       PUR_ORDER.SCH_START_DATE,
+          PUR_ORDER.JOC_CD PARENT_JOC_CD,DEMAND.PLAN_QTY,        S2.DATA_CHAR ITEM_UMSR,
+          DEMAND.WIP_ALLOC_QTY,      DEMAND.PLAN_DISB_QTY,
+          PUR_ORDER.PO_QTY INV_BAL,
+          0 AS FREE_INV_BAL,         0 AS WIP_BAL,               0 AS WIP_FREE_INV_BAL,
+          S.DATA_CHAR PO_UMSR,       PUR_ORDER.JOB_ORDER_NO ORDER_NO, 0 AS CHILD_FLAG
+      FROM SHORTITEM
+      INNER JOIN DEMAND ON SHORTITEM.WHS_CD = DEMAND.DISB_WHS
+            AND SHORTITEM.ITEM_NO = DEMAND.ITEM_NO
+            AND SHORTITEM.SCH_ID = DEMAND.SCH_ID
+            AND SHORTITEM.WS_CD = DEMAND.WS_CD
+            AND SHORTITEM.SCH_DISB_DATE = DEMAND.SCH_DISB_DATE
+            AND (SHORTITEM.JOC_CD = '*' OR SHORTITEM.JOC_CD = DEMAND.JOC_CD )
+            AND DEMAND.ALLOC_FLAG <> 1
+            AND DEMAND.DEMAND_STATUS <= 30
+      INNER JOIN PUR_ORDER ON  DEMAND.ORDER_NO = PUR_ORDER.ORDER_NO
+      INNER JOIN WORKSHOP_MASTER ON PUR_ORDER.WS_CD = WORKSHOP_MASTER.WS_CD
+      LEFT JOIN SYSTEM_PARAMETER S ON S.KEY01 = 'ITEM_UMSR' AND S.KEY02 = PUR_ORDER.PO_UMSR
+      LEFT JOIN SYSTEM_PARAMETER S2 ON S2.KEY01 = 'ITEM_UMSR' AND S2.KEY02 = DEMAND.ITEM_UMSR
+      UNION ALL SELECT
+          SHORTITEM.SCH_ID,          SHORTITEM.WS_CD,            SHORTITEM.WS_DESC,
+          SHORTITEM.WHS_CD,          SHORTITEM.WHS_DESC,         SHORTITEM.ITEM_NO,
+          SHORTITEM.SCH_DISB_DATE,   SHORTITEM.JOC_CD,
+          JOB_ORDER.ITEM_NO PARENT_ITEM_NO,                      JOB_ORDER.ITEM_DESC,
+          JOB_ORDER.ITEM_TYPE,       JOB_ORDER.SCH_START_DATE,
+          JOB_ORDER.JOC_CD PARENT_JOC_CD,DEMAND.PLAN_QTY,        S2.DATA_CHAR ITEM_UMSR,
+          DEMAND.WIP_ALLOC_QTY,      DEMAND.PLAN_DISB_QTY,
+          JOB_ORDER.JOB_ORDER_QTY INV_BAL,
+          0 AS FREE_INV_BAL,         0 AS WIP_BAL,               0 AS WIP_FREE_INV_BAL,
+          S.DATA_CHAR PO_UMSR,       JOB_ORDER.JOB_ORDER_NO ORDER_NO, 0 AS CHILD_FLAG
+      FROM SHORTITEM
+      INNER JOIN DEMAND ON SHORTITEM.WHS_CD = DEMAND.DISB_WHS
+            AND SHORTITEM.ITEM_NO = DEMAND.ITEM_NO
+            AND SHORTITEM.SCH_ID = DEMAND.SCH_ID
+            AND SHORTITEM.WS_CD = DEMAND.WS_CD
+            AND SHORTITEM.SCH_DISB_DATE = DEMAND.SCH_DISB_DATE
+            AND (SHORTITEM.JOC_CD = '*' OR SHORTITEM.JOC_CD = DEMAND.JOC_CD )
+            AND DEMAND.ALLOC_FLAG <> 1
+            AND DEMAND.DEMAND_STATUS <= 30
+      INNER JOIN JOB_ORDER ON  DEMAND.ORDER_NO = JOB_ORDER.ORDER_NO
+      INNER JOIN WORKSHOP_MASTER ON JOB_ORDER.WS_CD = WORKSHOP_MASTER.WS_CD
+      LEFT JOIN SYSTEM_PARAMETER S ON S.KEY01 = 'ITEM_UMSR' AND S.KEY02 = JOB_ORDER.ORDER_UMSR
+      LEFT JOIN SYSTEM_PARAMETER S2 ON S2.KEY01 = 'ITEM_UMSR' AND S2.KEY02 = DEMAND.ITEM_UMSR  
+    ) SHORT                                    
+ORDER BY
+  SCH_ID,          WS_CD,            WHS_CD,
+  ITEM_NO,         SCH_DISB_DATE,    JOC_CD,
+  PARENT_ITEM_NO,  SCH_START_DATE

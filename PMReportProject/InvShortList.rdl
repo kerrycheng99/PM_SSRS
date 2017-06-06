@@ -86,349 +86,293 @@ AND KEY02 = @KEY02</CommandText>
         </Field>
       </Fields>
     </DataSet>
-    <DataSet Name="PurFcstInqList">
+    <DataSet Name="InvShortList">
       <Query>
         <DataSourceName>PMDS</DataSourceName>
         <QueryParameters>
-          <QueryParameter Name="@DATE_TYPE">
-            <Value>=Parameters!DATE_TYPE.Value</Value>
-          </QueryParameter>
-          <QueryParameter Name="@CALENDAR_DATE">
-            <Value>=Parameters!CALENDAR_DATE.Value</Value>
-          </QueryParameter>
-          <QueryParameter Name="@TTL_WEEK">
-            <Value>=Parameters!TTL_WEEK.Value</Value>
-          </QueryParameter>
-          <QueryParameter Name="@VENDOR_CD">
-            <Value>=Parameters!VENDOR_CD.Value</Value>
-          </QueryParameter>
           <QueryParameter Name="@ITEM_NO">
             <Value>=Parameters!ITEM_NO.Value</Value>
           </QueryParameter>
+          <QueryParameter Name="@SCH_ID">
+            <Value>=Parameters!SCH_ID.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name="@WS_CD">
+            <Value>=Parameters!WS_CD.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name="@WHS_CD">
+            <Value>=Parameters!WHS_CD.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name="@JOC_CD">
+            <Value>=Parameters!JOC_CD.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name="@SCH_DISB_BEG_DATE">
+            <Value>=Parameters!SCH_DISB_BEG_DATE.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name="@SCH_DISB_END_DATE">
+            <Value>=Parameters!SCH_DISB_END_DATE.Value</Value>
+          </QueryParameter>
         </QueryParameters>
-        <CommandText>--PurFcstInq_フォーキャストSQL
---月（週）単位のカレンダ未加工のデータ（二の統合）
-IF OBJECT_ID('tempdb..#TMP_CAL') IS NOT NULL DROP TABLE #TMP_CAL
-SELECT * INTO #TMP_CAL FROM (
-    SELECT  DISTINCT (CASE @DATE_TYPE WHEN 0 THEN TTL_WEEK ELSE CALENDAR_CYM END) DATE_WEEK_CYM, --0.週単位 1.月単位
-            min(CALENDAR_DATE) MIN_DATE,  
-            max(CALENDAR_DATE) MAX_DATE,
-            (ROW_NUMBER() OVER (order by (CASE @DATE_TYPE WHEN 0 THEN TTL_WEEK ELSE CALENDAR_CYM END))) DATE_ID
-    FROM  CALENDAR_MASTER
-    WHERE CALENDAR_ID = '00'
-    AND ( (@DATE_TYPE = 1  --Month
-           and CALENDAR_DATE &gt;= @CALENDAR_DATE  
-           and CALENDAR_DATE &lt;= CONVERT(VARCHAR(8), DATEADD(DAY,-1,(DATEADD(MONTH,8,CONVERT(DATETIME,CONVERT(VARCHAR(8),@CALENDAR_DATE))))), 112)
-          ) or 
-          (@DATE_TYPE != 1 --Week
-           and TTL_WEEK &gt;= @TTL_WEEK
-           and TTL_WEEK &lt;= (@TTL_WEEK + 7)
-          )
-        )
-    GROUP BY (CASE @DATE_TYPE WHEN 0 THEN TTL_WEEK ELSE CALENDAR_CYM END)
-) A
-CREATE INDEX TMP_CAL_IDX1 ON #TMP_CAL (DATE_WEEK_CYM)
-CREATE INDEX TMP_CAL_IDX2 ON #TMP_CAL (DATE_ID)
---SELECT * FROM #TMP_CAL
-
---フォーキャスト明細未加工のデータ
-IF OBJECT_ID('tempdb..#TMP_FCS') IS NOT NULL DROP TABLE #TMP_FCS
-SELECT * INTO #TMP_FCS FROM (
+        <CommandText>--InvShortList_品目欠品リストSQL
+;WITH 
+SHORTITEM AS
+(
   SELECT
-   (CASE @DATE_TYPE WHEN 0 THEN 'WEEK' ELSE 'MONTH' END) DATE_TYPE_TXT
-  ,PO.VENDOR_CD
-  ,VM.VENDOR_NAME 
-  ,PO.ITEM_NO
-  ,PO.ITEM_DESC
-  ,CASE PM.DELV_LT_TYPE 
-   WHEN 0 THEN convert(varchar,PM.DELV_LT) 
-   WHEN 1 THEN convert(varchar,PM.DELV_LT_PROPORTION) 
-          + '(LOT:' + convert(varchar,PM.STD_LOT_SIZE) + ')' END DELV_LT 
-  ,SUM(PO.PO_QTY) PO_QTY
-  ,(CASE @DATE_TYPE WHEN 0 THEN CAL.TTL_WEEK ELSE CAL.CALENDAR_CYM END) DATE_WEEK_CYM
-  ,T.DATE_ID
-  FROM PLANNED_ORDER PO
-  LEFT JOIN CALENDAR_MASTER CAL ON CAL.CALENDAR_DATE = PO.PO_DUE_DATE
-       AND CAL.CALENDAR_ID = '00'
-       AND ( (@DATE_TYPE = 1  --Month
-              and CAL.CALENDAR_DATE  &gt;= (SELECT MIN(CALENDAR_DATE) from CALENDAR_MASTER WHERE CALENDAR_DATE &gt;= @CALENDAR_DATE)
-              and CAL.CALENDAR_DATE  &lt;= (SELECT MAX(CALENDAR_DATE) from CALENDAR_MASTER WHERE CALENDAR_DATE &lt;=
-                  CONVERT(VARCHAR(8), DATEADD(DAY,-1,(DATEADD(MONTH,8,CONVERT(DATETIME,CONVERT(VARCHAR(8),@CALENDAR_DATE))))), 112))
-             ) or 
-             (@DATE_TYPE != 1 --Week
-              and CAL.CALENDAR_DATE  &gt;= (SELECT MIN(CALENDAR_DATE) from CALENDAR_MASTER WHERE TTL_WEEK = @TTL_WEEK)
-              and CAL.CALENDAR_DATE  &lt;= (SELECT MAX(CALENDAR_DATE) from CALENDAR_MASTER WHERE TTL_WEEK = @TTL_WEEK + 7)
-             ) 
-           )
-  LEFT OUTER JOIN PURCHASE_MASTER PM ON PM.ITEM_NO  = PO.ITEM_NO
-       AND PO.VENDOR_CD = PM.VENDOR_CD
-       AND PO.PO_DUE_DATE &gt;= PM.BEG_EFF_DATE
-       AND PO.PO_DUE_DATE &lt;= PM.END_EFF_DATE
-  LEFT OUTER JOIN VENDOR_MASTER VM ON PO.VENDOR_CD = VM.VENDOR_CD
-  LEFT JOIN #TMP_CAL T ON T.DATE_WEEK_CYM=(CASE @DATE_TYPE WHEN 0 THEN CAL.TTL_WEEK ELSE CAL.CALENDAR_CYM END)
-  WHERE 1 = 1
-    AND PO.SC_FLAG = 1
-    AND PO.ITEM_TYPE &lt;&gt; '99'
-    AND (PO.VENDOR_CD = @VENDOR_CD or @VENDOR_CD = '')
-    AND (PO.ITEM_NO LIKE @ITEM_NO or @ITEM_NO = '')
-    AND ( (@DATE_TYPE = 1  --Month
-              and PO.PO_DUE_DATE &gt;= @CALENDAR_DATE  
-              and PO.PO_DUE_DATE &lt;= CONVERT(varchar(8), DATEADD(Month,8,convert(datetime,convert(varchar(8),@CALENDAR_DATE))), 112)
-             ) or 
-             (@DATE_TYPE != 1 --Week
-              and PO.PO_DUE_DATE  &gt;= (SELECT MIN(CALENDAR_DATE) from CALENDAR_MASTER WHERE TTL_WEEK = @TTL_WEEK)
-              and PO.PO_DUE_DATE  &lt;= (SELECT MAX(CALENDAR_DATE) from CALENDAR_MASTER WHERE TTL_WEEK = @TTL_WEEK + 7)
-             ) 
-        )
-  GROUP BY 
-        PO.VENDOR_CD, VM.VENDOR_NAME, PO.ITEM_NO, PO.ITEM_DESC
-       ,CASE PM.DELV_LT_TYPE 
-        WHEN 0 THEN convert(varchar,PM.DELV_LT) 
-        WHEN 1 THEN convert(varchar,PM.DELV_LT_PROPORTION)   + '(LOT:' + convert(varchar,PM.STD_LOT_SIZE) + ')' END
-       ,CASE @DATE_TYPE WHEN 0 THEN CAL.TTL_WEEK ELSE CAL.CALENDAR_CYM END
-       ,T.DATE_ID 
-  --ORDER BY PO.VENDOR_CD, PO.ITEM_NO
-) B
-ORDER BY VENDOR_CD, ITEM_NO, DATE_WEEK_CYM
-CREATE INDEX TMP_JOB_IDX1 ON #TMP_FCS (ITEM_NO)
-CREATE INDEX TMP_JOB_IDX2 ON #TMP_FCS (VENDOR_CD)
-CREATE INDEX TMP_JOB_IDX5 ON #TMP_FCS (DATE_ID)
---SELECT * FROM #TMP_FCS
+  SCH_ID,WS_CD,WHS_CD,ITEM_NO,ITEM_DESC,ITEM_TYPE,
+  SCH_DISB_DATE,JOC_CD,SUM(PLAN_QTY) PLAN_QTY,
+  SUM(WIP_ALLOC_QTY) WIP_ALLOC_QTY,SUM(PLAN_DISB_QTY) PLAN_DISB_QTY,
+  INV_BAL,FREE_INV_BAL,
+  WIP_BAL,WIP_FREE_INV_BAL,
+  WHS_DESC,ITEM_UMSR,WS_DESC,SCH_DESC
+  FROM (
+        SELECT D.SCH_ID,D.WS_CD,D.DISB_WHS WHS_CD,D.ITEM_NO,I.ITEM_DESC,I.ITEM_TYPE,
+               D.SCH_DISB_DATE,ISNULL(INV.JOC_CD,CASE WHEN I.PO_TYPE = 4 THEN D.JOC_CD ELSE '*'
+               END) JOC_CD,D.PLAN_QTY PLAN_QTY,
+               D.WIP_ALLOC_QTY WIP_ALLOC_QTY,D.PLAN_DISB_QTY PLAN_DISB_QTY,
+               ISNULL(INV.INV_BAL,0) INV_BAL,ISNULL(INV.FREE_INV_BAL,0) FREE_INV_BAL,
+               ISNULL(INV.WIP_BAL,0) WIP_BAL,ISNULL(INV.WIP_FREE_INV_BAL,0) WIP_FREE_INV_BAL
+               ,W.WHS_DESC,S.DATA_CHAR ITEM_UMSR,WS.WS_DESC,S2.DATA_CHAR SCH_DESC
+        FROM ( SELECT SCH_ID,WS_CD,ITEM_NO,DISB_WHS,
+                      ORDER_NO,JOC_CD,SUPPLY_TYPE,SCH_DISB_DATE,
+                      ALLOC_FLAG,DEMAND_STATUS,PLAN_QTY,ITEM_UMSR,
+                      WIP_ALLOC_QTY,PLAN_DISB_QTY,SUB_GRP_CD,SUB_ACTION_FLAG,ITEM_TYPE
+               FROM DEMAND
+               WHERE ITEM_TYPE &lt;&gt; 99 AND DEMAND_STATUS &lt;= 30 AND ALLOC_FLAG &lt;&gt; 1
+             ) D       
+        INNER JOIN ITEM_MASTER I ON D.ITEM_NO = I.ITEM_NO
+        LEFT JOIN
+                    (SELECT INV.WHS_CD, SWIP.WHS_CD SWHS_CD, WIP.WS_CD, INV.ITEM_NO,
+                        INV.JOC_CD, SWIP.SUPPLY_TYPE,
+                        SUM(ISNULL(INV.INV_BAL,0)) INV_BAL,
+                        SUM(ISNULL(INV.FREE_INV_BAL,0)) FREE_INV_BAL,
+                        SUM(ISNULL(WIP.INV_BAL,0) + ISNULL(SWIP.INV_BAL,0)) WIP_BAL,
+                        SUM(ISNULL(WIP.FREE_INV_BAL,0) + ISNULL(SWIP.FREE_INV_BAL,0)) WIP_FREE_INV_BAL
+                     FROM      (             --//倉庫在庫  
+                                 SELECT I.WHS_CD, I.ITEM_NO, I.JOC_CD,SUM(ISNULL(I.INV_BAL,0)) INV_BAL,    
+                                        SUM(ISNULL(I.INV_BAL,0) - ISNULL(I.ALLOC_QTY,0)) FREE_INV_BAL
+                                 FROM INVENTORY_DETAIL I                                                   
+                                 INNER JOIN WAREHOUSE_MASTER W                                              
+                                 ON I.WHS_CD = W.WHS_CD AND W.WHS_TYPE = 0                                  
+                                 WHERE I.INV_YM= 0 AND I.INV_WIP_TYPE= 0 AND I.INV_TYPE = 0                 
+                                 GROUP BY I.WHS_CD, I.ITEM_NO, I.JOC_CD
+                               ) INV                                
+                     LEFT JOIN (             --//現場在庫
+                                 SELECT I.WS_CD, I.ITEM_NO, I.JOC_CD,SUM(ISNULL(I.INV_BAL,0)) INV_BAL,     
+                                        SUM(ISNULL(I.INV_BAL,0) - ISNULL(I.ALLOC_QTY,0)) FREE_INV_BAL              
+                                 FROM INVENTORY_DETAIL I                                                   
+                                 WHERE I.INV_YM= 0 AND I.INV_WIP_TYPE= 1 AND I.INV_TYPE = 0                 
+                                 GROUP BY I.WS_CD, I.ITEM_NO, I.JOC_CD
+                               ) WIP                                 
+                               ON INV.ITEM_NO = WIP.ITEM_NO AND INV.JOC_CD = WIP.JOC_CD                   
+                     LEFT JOIN (             --//支給品倉庫在庫
+                                 SELECT I.WHS_CD, I.ITEM_NO, I.JOC_CD, I.SUPPLY_TYPE,
+                                        SUM(ISNULL(I.INV_BAL,0)) INV_BAL,
+                                        SUM(ISNULL(I.INV_BAL,0) - ISNULL(I.ALLOC_QTY,0)) FREE_INV_BAL
+                                 FROM INVENTORY_DETAIL I
+                                 INNER JOIN WAREHOUSE_MASTER W ON I.WHS_CD = W.WHS_CD AND W.WHS_TYPE = 2
+                                 WHERE I.INV_YM= 0 AND I.INV_WIP_TYPE= 0 AND I.INV_TYPE = 0
+                                 GROUP BY I.WHS_CD, I.ITEM_NO, I.JOC_CD, I.SUPPLY_TYPE
+                               ) SWIP
+                               ON INV.ITEM_NO = SWIP.ITEM_NO AND INV.JOC_CD = SWIP.JOC_CD
+                     GROUP BY INV.WHS_CD, SWIP.WHS_CD, WIP.WS_CD, INV.ITEM_NO,
+                              INV.JOC_CD, SWIP.SUPPLY_TYPE
+                    ) INV
+                    ON D.DISB_WHS = INV.WHS_CD AND D.ITEM_NO = INV.ITEM_NO                     
+                    AND CASE WHEN I.PO_TYPE = 4 THEN D.JOC_CD ELSE '*' END = INV.JOC_CD        
+        LEFT JOIN JOB_ORDER J ON D.ORDER_NO = J.ORDER_NO AND J.WS_CD=INV.WS_CD
+        LEFT JOIN PUR_ORDER P ON D.ORDER_NO=P.ORDER_NO
+        LEFT JOIN VENDOR_MASTER V ON P.VENDOR_CD=V.VENDOR_CD
+             AND CASE I.BOND_TYPE WHEN 1 THEN V.BOND_SUPPLY_WHS ELSE V.SUPPLY_WHS END = INV.SWHS_CD 
+             AND D.SUPPLY_TYPE=INV.SUPPLY_TYPE
+        LEFT JOIN PLANNED_ORDER PO ON ((D.ORDER_NO = PO.ORDER_NO AND PO.WS_CD=INV.WS_CD)
+             OR (D.ORDER_NO = PO.ORDER_NO AND  PO.VENDOR_CD=V.VENDOR_CD
+                 AND CASE I.BOND_TYPE WHEN 1 THEN V.BOND_SUPPLY_WHS ELSE V.SUPPLY_WHS END = INV.SWHS_CD 
+                 AND D.SUPPLY_TYPE=INV.SUPPLY_TYPE))
+        LEFT JOIN WORKSHOP_MASTER WS ON D.WS_CD=WS.WS_CD
+        LEFT JOIN SYSTEM_PARAMETER S2 ON S2.KEY01='SCH_ID' AND S2.KEY02= D.SCH_ID
+        LEFT JOIN WAREHOUSE_MASTER W ON D.DISB_WHS=W.WHS_CD
+        LEFT JOIN SYSTEM_PARAMETER S ON S.KEY01='ITEM_UMSR' AND S.KEY02= D.ITEM_UMSR
+        WHERE D.ALLOC_FLAG&lt;&gt;1 AND D.DEMAND_STATUS&lt;=30
+        AND (D.SUB_GRP_CD = '' OR  (D.SUB_GRP_CD &lt;&gt; '' AND D.SUB_ACTION_FLAG = 1))
+        AND D.ITEM_TYPE &lt;&gt; '99'
+        AND ( (@ITEM_NO &lt;&gt; '' and (J.ITEM_NO=@ITEM_NO OR P.ITEM_NO=@ITEM_NO OR PO.ITEM_NO=@ITEM_NO)) or @ITEM_NO = '')
+        AND ( (@SCH_ID  &lt;&gt; '' and D.SCH_ID=@SCH_ID) or @SCH_ID = '' )
+        AND ( (@WS_CD   &lt;&gt; '' and D.WS_CD=@WS_CD) or @WS_CD = '' )
+        AND ( (@WHS_CD  &lt;&gt; '' and D.DISB_WHS IN ( @WHS_CD )) or @WHS_CD = '' )
+        AND ( (@JOC_CD  &lt;&gt; '' and D.JOC_CD= @JOC_CD) or @JOC_CD = '' )
+        AND ( (@SCH_DISB_BEG_DATE &lt;&gt; 0 and D.SCH_DISB_DATE&gt;=@SCH_DISB_BEG_DATE) or @SCH_DISB_BEG_DATE = 0)
+        AND ( (@SCH_DISB_END_DATE &lt;&gt; 0 and D.SCH_DISB_DATE&lt;=@SCH_DISB_END_DATE) or @SCH_DISB_END_DATE = 0)
+      ) G
+  GROUP BY SCH_ID,WS_CD,WHS_CD,ITEM_NO,ITEM_DESC,ITEM_TYPE,
+           SCH_DISB_DATE,JOC_CD,INV_BAL,
+           FREE_INV_BAL,WIP_BAL,WIP_FREE_INV_BAL,WHS_DESC,ITEM_UMSR,WS_DESC,SCH_DESC
+)
 
-DECLARE @dat_num_col NVARCHAR(MAX)
-DECLARE @dat_min_col NVARCHAR(MAX)
-DECLARE @dat_max_col NVARCHAR(MAX)
-DECLARE @pur_qty_col NVARCHAR(MAX)
-DECLARE @pur_qty_val NVARCHAR(MAX)
-DECLARE @sql_str NVARCHAR(MAX)
-
---月（週）単位のカレンダの列名（二の統合）
---SELECT @dat_num_col = ISNULL(@dat_num_col + ',', '') + QUOTENAME('DAT_'+CAST(DATE_ID AS VARCHAR(8)))
---      ,@dat_min_col = ISNULL(@dat_min_col + ',', '') + QUOTENAME('MIN_'+CAST(DATE_ID AS VARCHAR(8)))
---      ,@dat_max_col = ISNULL(@dat_max_col + ',', '') + QUOTENAME('MAX_'+CAST(DATE_ID AS VARCHAR(8)))
---      ,@pur_qty_col = ISNULL(@pur_qty_col + ',', '') + QUOTENAME('PUR_'+CAST(DATE_ID AS VARCHAR(8)))
---      ,@pur_qty_val = ISNULL(@pur_qty_val + ',', '') + 'ISNULL(' + QUOTENAME('PUR_'+CAST(DATE_ID AS VARCHAR(8))) + ',0) AS ' + QUOTENAME('PUR_'+CAST(DATE_ID AS VARCHAR(8)))
---FROM #TMP_CAL
---SSRS固定の表現
-SET @dat_num_col = 'DAT_1, DAT_2, DAT_3, DAT_4, DAT_5, DAT_6, DAT_7, DAT_8'
-SET @dat_min_col = 'MIN_1, MIN_2, MIN_3, MIN_4, MIN_5, MIN_6, MIN_7, MIN_8'
-SET @dat_max_col = 'MAX_1, MAX_2, MAX_3, MAX_4, MAX_5, MAX_6, MAX_7, MAX_8'
-SET @pur_qty_col = 'PUR_1, PUR_2, PUR_3, PUR_4, PUR_5, PUR_6, PUR_7, PUR_8'
-SET @pur_qty_val = 'ISNULL(PUR_1,0) PUR_1, ISNULL(PUR_2,0) PUR_2, ISNULL(PUR_3,0) PUR_3, ISNULL(PUR_4,0) PUR_4, ISNULL(PUR_5,0) PUR_5, ISNULL(PUR_6,0) PUR_6, ISNULL(PUR_7,0) PUR_7, ISNULL(PUR_8,0) PUR_8'
-
---PRINT (@dat_num_col)
---PRINT (@dat_min_col)
---PRINT (@dat_max_col)
---PRINT (@pur_qty_col)
---PRINT (@pur_qty_val)
-
---SQLの合成,ライン変換列の処理[PIVOT]
-SET @sql_str = '
-    SELECT  PVT.DATE_TYPE_TXT,
-            PVT.VENDOR_CD,   PVT.VENDOR_NAME,   PVT.ITEM_NO,   PVT.ITEM_DESC,   PVT.DELV_LT,
-            ' + @pur_qty_val + ', ' + '
-            ' + @dat_num_col + ', ' + '
-            ' + @dat_min_col + ', ' + '
-            ' + @dat_max_col + '
-    FROM (         --PO_QTY 発注残数量
-        SELECT ''PUR_'' + CAST(DATE_ID AS VARCHAR(8)) AS DATE_ID_COL, DATE_TYPE_TXT,
-               VENDOR_CD,      VENDOR_NAME,    ITEM_NO,        ITEM_DESC,      DELV_LT,
-               PO_QTY FROM #TMP_FCS
-        ) PLN
-        PIVOT
-        ( SUM(PO_QTY) 
-          FOR DATE_ID_COL IN (' + @pur_qty_col +')
-    ) AS PVT
-    CROSS APPLY (  --DATE_WEEK_CYM
-        SELECT * 
-        FROM ( 
-              SELECT ''DAT_'' + CAST(DATE_ID AS VARCHAR(8)) AS DATE_ID_COL, 
-                     DATE_WEEK_CYM FROM #TMP_CAL
-             ) DAT
-             PIVOT
-             ( MIN(DATE_WEEK_CYM) 
-               FOR DATE_ID_COL IN (' + @dat_num_col +')
-              ) AS DAT_PVT
-    ) T3
-    CROSS APPLY (  --MIN_DATE
-        SELECT * 
-        FROM ( 
-              SELECT ''MIN_'' + CAST(DATE_ID AS VARCHAR(8)) AS DATE_ID_COL, 
-                     MIN_DATE FROM #TMP_CAL
-             ) DAT
-             PIVOT
-             ( MIN(MIN_DATE) 
-               FOR DATE_ID_COL IN (' + @dat_min_col +')
-              ) AS DAT_PVT
-    ) T4
-    CROSS APPLY (  --MAX_DATE
-        SELECT * 
-        FROM ( 
-              SELECT ''MAX_'' + CAST(DATE_ID AS VARCHAR(8)) AS DATE_ID_COL, 
-                     MAX_DATE FROM #TMP_CAL
-             ) DAT
-             PIVOT
-             ( MAX(MAX_DATE) 
-               FOR DATE_ID_COL IN (' + @dat_max_col +')
-              ) AS DAT_PVT
-    ) T5
-    ORDER BY PVT.VENDOR_CD,PVT.ITEM_NO'
-
---PRINT (@sql_str)
-EXEC (@sql_str)</CommandText>
+SELECT
+    SCH_ID,        WS_CD,          WS_DESC,        WHS_CD,         WHS_DESC,
+    ITEM_NO,       SCH_DISB_DATE,  JOC_CD,         PARENT_ITEM_NO, ITEM_DESC,
+    ITEM_TYPE,     SCH_START_DATE, PARENT_JOC_CD,  PLAN_QTY,
+    ITEM_UMSR,     WIP_ALLOC_QTY,  PLAN_DISB_QTY,
+    INV_BAL,       FREE_INV_BAL,   WIP_BAL,        WIP_FREE_INV_BAL,
+    PO_UMSR,       ORDER_NO,       CHILD_FLAG 
+FROM(
+      SELECT
+          SCH_ID,        WS_CD,          WS_DESC,        WHS_CD,             WHS_DESC,
+          ITEM_NO,       SCH_DISB_DATE,  JOC_CD,         '' AS PARENT_ITEM_NO,ITEM_DESC,
+          ITEM_TYPE,     0 AS SCH_START_DATE,            '' AS PARENT_JOC_CD,PLAN_QTY,
+          ITEM_UMSR,     WIP_ALLOC_QTY, PLAN_DISB_QTY,
+          INV_BAL,       FREE_INV_BAL,   WIP_BAL,    WIP_FREE_INV_BAL,
+          '' AS PO_UMSR, '' AS ORDER_NO, 1 AS CHILD_FLAG
+      FROM SHORTITEM
+      UNION ALL SELECT
+          SHORTITEM.SCH_ID,          SHORTITEM.WS_CD,            SHORTITEM.WS_DESC,
+          SHORTITEM.WHS_CD,          SHORTITEM.WHS_DESC,         SHORTITEM.ITEM_NO,
+          SHORTITEM.SCH_DISB_DATE,   SHORTITEM.JOC_CD,
+          PUR_ORDER.ITEM_NO PARENT_ITEM_NO,                      PUR_ORDER.ITEM_DESC,
+          PUR_ORDER.ITEM_TYPE,       PUR_ORDER.SCH_START_DATE,
+          PUR_ORDER.JOC_CD PARENT_JOC_CD,DEMAND.PLAN_QTY,        S2.DATA_CHAR ITEM_UMSR,
+          DEMAND.WIP_ALLOC_QTY,      DEMAND.PLAN_DISB_QTY,
+          PUR_ORDER.PO_QTY INV_BAL,
+          0 AS FREE_INV_BAL,         0 AS WIP_BAL,               0 AS WIP_FREE_INV_BAL,
+          S.DATA_CHAR PO_UMSR,       PUR_ORDER.JOB_ORDER_NO ORDER_NO, 0 AS CHILD_FLAG
+      FROM SHORTITEM
+      INNER JOIN DEMAND ON SHORTITEM.WHS_CD = DEMAND.DISB_WHS
+            AND SHORTITEM.ITEM_NO = DEMAND.ITEM_NO
+            AND SHORTITEM.SCH_ID = DEMAND.SCH_ID
+            AND SHORTITEM.WS_CD = DEMAND.WS_CD
+            AND SHORTITEM.SCH_DISB_DATE = DEMAND.SCH_DISB_DATE
+            AND (SHORTITEM.JOC_CD = '*' OR SHORTITEM.JOC_CD = DEMAND.JOC_CD )
+            AND DEMAND.ALLOC_FLAG &lt;&gt; 1
+            AND DEMAND.DEMAND_STATUS &lt;= 30
+      INNER JOIN PUR_ORDER ON  DEMAND.ORDER_NO = PUR_ORDER.ORDER_NO
+      INNER JOIN WORKSHOP_MASTER ON PUR_ORDER.WS_CD = WORKSHOP_MASTER.WS_CD
+      LEFT JOIN SYSTEM_PARAMETER S ON S.KEY01 = 'ITEM_UMSR' AND S.KEY02 = PUR_ORDER.PO_UMSR
+      LEFT JOIN SYSTEM_PARAMETER S2 ON S2.KEY01 = 'ITEM_UMSR' AND S2.KEY02 = DEMAND.ITEM_UMSR
+      UNION ALL SELECT
+          SHORTITEM.SCH_ID,          SHORTITEM.WS_CD,            SHORTITEM.WS_DESC,
+          SHORTITEM.WHS_CD,          SHORTITEM.WHS_DESC,         SHORTITEM.ITEM_NO,
+          SHORTITEM.SCH_DISB_DATE,   SHORTITEM.JOC_CD,
+          JOB_ORDER.ITEM_NO PARENT_ITEM_NO,                      JOB_ORDER.ITEM_DESC,
+          JOB_ORDER.ITEM_TYPE,       JOB_ORDER.SCH_START_DATE,
+          JOB_ORDER.JOC_CD PARENT_JOC_CD,DEMAND.PLAN_QTY,        S2.DATA_CHAR ITEM_UMSR,
+          DEMAND.WIP_ALLOC_QTY,      DEMAND.PLAN_DISB_QTY,
+          JOB_ORDER.JOB_ORDER_QTY INV_BAL,
+          0 AS FREE_INV_BAL,         0 AS WIP_BAL,               0 AS WIP_FREE_INV_BAL,
+          S.DATA_CHAR PO_UMSR,       JOB_ORDER.JOB_ORDER_NO ORDER_NO, 0 AS CHILD_FLAG
+      FROM SHORTITEM
+      INNER JOIN DEMAND ON SHORTITEM.WHS_CD = DEMAND.DISB_WHS
+            AND SHORTITEM.ITEM_NO = DEMAND.ITEM_NO
+            AND SHORTITEM.SCH_ID = DEMAND.SCH_ID
+            AND SHORTITEM.WS_CD = DEMAND.WS_CD
+            AND SHORTITEM.SCH_DISB_DATE = DEMAND.SCH_DISB_DATE
+            AND (SHORTITEM.JOC_CD = '*' OR SHORTITEM.JOC_CD = DEMAND.JOC_CD )
+            AND DEMAND.ALLOC_FLAG &lt;&gt; 1
+            AND DEMAND.DEMAND_STATUS &lt;= 30
+      INNER JOIN JOB_ORDER ON  DEMAND.ORDER_NO = JOB_ORDER.ORDER_NO
+      INNER JOIN WORKSHOP_MASTER ON JOB_ORDER.WS_CD = WORKSHOP_MASTER.WS_CD
+      LEFT JOIN SYSTEM_PARAMETER S ON S.KEY01 = 'ITEM_UMSR' AND S.KEY02 = JOB_ORDER.ORDER_UMSR
+      LEFT JOIN SYSTEM_PARAMETER S2 ON S2.KEY01 = 'ITEM_UMSR' AND S2.KEY02 = DEMAND.ITEM_UMSR  
+    ) SHORT                                    
+ORDER BY
+  SCH_ID,          WS_CD,            WHS_CD,
+  ITEM_NO,         SCH_DISB_DATE,    JOC_CD,
+  PARENT_ITEM_NO,  SCH_START_DATE</CommandText>
       </Query>
       <Fields>
-        <Field Name="DATE_TYPE_TXT">
-          <DataField>DATE_TYPE_TXT</DataField>
+        <Field Name="SCH_ID">
+          <DataField>SCH_ID</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
-        <Field Name="VENDOR_CD">
-          <DataField>VENDOR_CD</DataField>
+        <Field Name="WS_CD">
+          <DataField>WS_CD</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
-        <Field Name="VENDOR_NAME">
-          <DataField>VENDOR_NAME</DataField>
+        <Field Name="WS_DESC">
+          <DataField>WS_DESC</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="WHS_CD">
+          <DataField>WHS_CD</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="WHS_DESC">
+          <DataField>WHS_DESC</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="ITEM_NO">
           <DataField>ITEM_NO</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
+        <Field Name="SCH_DISB_DATE">
+          <DataField>SCH_DISB_DATE</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="JOC_CD">
+          <DataField>JOC_CD</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="PARENT_ITEM_NO">
+          <DataField>PARENT_ITEM_NO</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
         <Field Name="ITEM_DESC">
           <DataField>ITEM_DESC</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
-        <Field Name="DELV_LT">
-          <DataField>DELV_LT</DataField>
+        <Field Name="ITEM_TYPE">
+          <DataField>ITEM_TYPE</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
-        <Field Name="PUR_1">
-          <DataField>PUR_1</DataField>
+        <Field Name="SCH_START_DATE">
+          <DataField>SCH_START_DATE</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
-        <Field Name="PUR_2">
-          <DataField>PUR_2</DataField>
+        <Field Name="PARENT_JOC_CD">
+          <DataField>PARENT_JOC_CD</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="PLAN_QTY">
+          <DataField>PLAN_QTY</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
-        <Field Name="PUR_3">
-          <DataField>PUR_3</DataField>
+        <Field Name="ITEM_UMSR">
+          <DataField>ITEM_UMSR</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="WIP_ALLOC_QTY">
+          <DataField>WIP_ALLOC_QTY</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
-        <Field Name="PUR_4">
-          <DataField>PUR_4</DataField>
+        <Field Name="PLAN_DISB_QTY">
+          <DataField>PLAN_DISB_QTY</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
-        <Field Name="PUR_5">
-          <DataField>PUR_5</DataField>
+        <Field Name="INV_BAL">
+          <DataField>INV_BAL</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
-        <Field Name="PUR_6">
-          <DataField>PUR_6</DataField>
+        <Field Name="FREE_INV_BAL">
+          <DataField>FREE_INV_BAL</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
-        <Field Name="PUR_7">
-          <DataField>PUR_7</DataField>
+        <Field Name="WIP_BAL">
+          <DataField>WIP_BAL</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
-        <Field Name="PUR_8">
-          <DataField>PUR_8</DataField>
+        <Field Name="WIP_FREE_INV_BAL">
+          <DataField>WIP_FREE_INV_BAL</DataField>
           <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
-        <Field Name="DAT_1">
-          <DataField>DAT_1</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
+        <Field Name="PO_UMSR">
+          <DataField>PO_UMSR</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
         </Field>
-        <Field Name="DAT_2">
-          <DataField>DAT_2</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
+        <Field Name="ORDER_NO">
+          <DataField>ORDER_NO</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
         </Field>
-        <Field Name="DAT_3">
-          <DataField>DAT_3</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="DAT_4">
-          <DataField>DAT_4</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="DAT_5">
-          <DataField>DAT_5</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="DAT_6">
-          <DataField>DAT_6</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="DAT_7">
-          <DataField>DAT_7</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="DAT_8">
-          <DataField>DAT_8</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="MIN_1">
-          <DataField>MIN_1</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="MIN_2">
-          <DataField>MIN_2</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="MIN_3">
-          <DataField>MIN_3</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="MIN_4">
-          <DataField>MIN_4</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="MIN_5">
-          <DataField>MIN_5</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="MIN_6">
-          <DataField>MIN_6</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="MIN_7">
-          <DataField>MIN_7</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="MIN_8">
-          <DataField>MIN_8</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="MAX_1">
-          <DataField>MAX_1</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="MAX_2">
-          <DataField>MAX_2</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="MAX_3">
-          <DataField>MAX_3</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="MAX_4">
-          <DataField>MAX_4</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="MAX_5">
-          <DataField>MAX_5</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="MAX_6">
-          <DataField>MAX_6</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="MAX_7">
-          <DataField>MAX_7</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
-        <Field Name="MAX_8">
-          <DataField>MAX_8</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
+        <Field Name="CHILD_FLAG">
+          <DataField>CHILD_FLAG</DataField>
+          <rd:TypeName>System.Int32</rd:TypeName>
         </Field>
       </Fields>
     </DataSet>
@@ -441,46 +385,46 @@ EXEC (@sql_str)</CommandText>
             <TablixBody>
               <TablixColumns>
                 <TablixColumn>
+                  <Width>1.5cm</Width>
+                </TablixColumn>
+                <TablixColumn>
+                  <Width>3cm</Width>
+                </TablixColumn>
+                <TablixColumn>
+                  <Width>3cm</Width>
+                </TablixColumn>
+                <TablixColumn>
                   <Width>2.5cm</Width>
                 </TablixColumn>
                 <TablixColumn>
-                  <Width>6.07131cm</Width>
-                </TablixColumn>
-                <TablixColumn>
                   <Width>2.5cm</Width>
                 </TablixColumn>
                 <TablixColumn>
-                  <Width>2.1cm</Width>
+                  <Width>2cm</Width>
                 </TablixColumn>
                 <TablixColumn>
-                  <Width>2.1cm</Width>
+                  <Width>3.3cm</Width>
                 </TablixColumn>
                 <TablixColumn>
-                  <Width>2.1cm</Width>
+                  <Width>2.2cm</Width>
                 </TablixColumn>
                 <TablixColumn>
-                  <Width>2.1cm</Width>
+                  <Width>2.2cm</Width>
                 </TablixColumn>
                 <TablixColumn>
-                  <Width>2.1cm</Width>
+                  <Width>2.8cm</Width>
                 </TablixColumn>
                 <TablixColumn>
-                  <Width>2.1cm</Width>
-                </TablixColumn>
-                <TablixColumn>
-                  <Width>2.1cm</Width>
-                </TablixColumn>
-                <TablixColumn>
-                  <Width>2.1cm</Width>
+                  <Width>3.1cm</Width>
                 </TablixColumn>
               </TablixColumns>
               <TablixRows>
                 <TablixRow>
-                  <Height>1.4cm</Height>
+                  <Height>0.7cm</Height>
                   <TablixCells>
                     <TablixCell>
                       <CellContents>
-                        <Rectangle Name="Rectangle0">
+                        <Rectangle Name="Rectangle1">
                           <ReportItems>
                             <Textbox Name="TxtConditions">
                               <CanGrow>true</CanGrow>
@@ -490,12 +434,29 @@ EXEC (@sql_str)</CommandText>
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Label>P_VENDOR</Label>
-                                      <Value>=Code.GetLabel(Parameters!LABELS,"rpt_Vendor")
-+": "+Fields!VENDOR_CD.Value
-+" "+Fields!VENDOR_NAME.Value</Value>
+                                      <Label>P_WHS</Label>
+                                      <Value>=Code.GetLabel(Parameters!LABELS,"rpt_WHS_CD")
++" "+Fields!WHS_CD.Value
++" "+Fields!WHS_DESC.Value</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
+                                        <FontWeight>Normal</FontWeight>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Label>P_WS_CD</Label>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>=Switch(Parameters!LANG.Value = 1, "MS Gothic"
+,Parameters!LANG.Value = 2, "MS Gothic"
+,Parameters!LANG.Value = 3, "宋体"
+,Parameters!LANG.Value = 4, "Arial Unicode MS"
+)</FontFamily>
                                         <FontWeight>Normal</FontWeight>
                                       </Style>
                                     </TextRun>
@@ -517,121 +478,6 @@ EXEC (@sql_str)</CommandText>
                                 <PaddingBottom>2pt</PaddingBottom>
                               </Style>
                             </Textbox>
-                            <Textbox Name="Textbox107">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>P_ITEM</Label>
-                                      <Value>=IIf(Parameters!ITEM_NO.Value="",""
-,Code.GetLabel(Parameters!LABELS,"rpt_Item")
-+": "+Parameters!ITEM_NO.Value
-+" "+Fields!ITEM_DESC.Value
-)</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>0.7cm</Top>
-                              <Left>0.2cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>13.82826cm</Width>
-                              <ZIndex>1</ZIndex>
-                              <Visibility>
-                                <Hidden>true</Hidden>
-                              </Visibility>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                            <Textbox Name="Textbox112">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>P_CATG</Label>
-                                      <Value />
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>0.1cm</Top>
-                              <Left>14.20465cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>6.43812cm</Width>
-                              <ZIndex>2</ZIndex>
-                              <Visibility>
-                                <Hidden>true</Hidden>
-                              </Visibility>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                            <Textbox Name="Textbox116">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>P_VENDOR</Label>
-                                      <Value />
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>0.67056cm</Top>
-                              <Left>14.20465cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>6.98593cm</Width>
-                              <ZIndex>3</ZIndex>
-                              <Visibility>
-                                <Hidden>true</Hidden>
-                              </Visibility>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
                           </ReportItems>
                           <KeepTogether>true</KeepTogether>
                           <Style>
@@ -640,7 +486,7 @@ EXEC (@sql_str)</CommandText>
                             </Border>
                           </Style>
                         </Rectangle>
-                        <ColSpan>9</ColSpan>
+                        <ColSpan>8</ColSpan>
                       </CellContents>
                     </TablixCell>
                     <TablixCell />
@@ -650,10 +496,9 @@ EXEC (@sql_str)</CommandText>
                     <TablixCell />
                     <TablixCell />
                     <TablixCell />
-                    <TablixCell />
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox53">
+                        <Textbox Name="Textbox3">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
@@ -661,20 +506,19 @@ EXEC (@sql_str)</CommandText>
                               <TextRuns>
                                 <TextRun>
                                   <Value />
-                                  <Style />
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                  </Style>
                                 </TextRun>
                               </TextRuns>
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox53</rd:DefaultName>
+                          <rd:DefaultName>Textbox3</rd:DefaultName>
                           <Style>
                             <Border>
                               <Style>None</Style>
                             </Border>
-                            <BottomBorder>
-                              <Style>Dotted</Style>
-                            </BottomBorder>
                             <PaddingLeft>2pt</PaddingLeft>
                             <PaddingRight>2pt</PaddingRight>
                             <PaddingTop>2pt</PaddingTop>
@@ -685,7 +529,7 @@ EXEC (@sql_str)</CommandText>
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox55">
+                        <Textbox Name="Textbox9">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
@@ -699,14 +543,43 @@ EXEC (@sql_str)</CommandText>
                               <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox55</rd:DefaultName>
+                          <rd:DefaultName>Textbox9</rd:DefaultName>
                           <Style>
                             <Border>
                               <Style>None</Style>
                             </Border>
-                            <BottomBorder>
-                              <Style>Dotted</Style>
-                            </BottomBorder>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>2pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox13">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value />
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <Format>#,0.00;-#,0.00</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style />
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox13</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Style>None</Style>
+                            </Border>
                             <PaddingLeft>2pt</PaddingLeft>
                             <PaddingRight>2pt</PaddingRight>
                             <PaddingTop>2pt</PaddingTop>
@@ -722,6 +595,45 @@ EXEC (@sql_str)</CommandText>
                   <TablixCells>
                     <TablixCell>
                       <CellContents>
+                        <Textbox Name="Textbox54">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Label>H_LINE_NO</Label>
+                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_LINE_NO")</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style />
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox54</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Style>None</Style>
+                              <Width>1.5pt</Width>
+                            </Border>
+                            <TopBorder>
+                              <Style>Solid</Style>
+                            </TopBorder>
+                            <BottomBorder>
+                              <Style>Solid</Style>
+                            </BottomBorder>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
                         <Textbox Name="Textbox56">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
@@ -729,8 +641,8 @@ EXEC (@sql_str)</CommandText>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Label>H_ITEM</Label>
-                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_Item")</Value>
+                                  <Label>H_WS_CD</Label>
+                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_WS_CD")</Value>
                                   <Style>
                                     <FontFamily>MS Gothic</FontFamily>
                                   </Style>
@@ -741,8 +653,8 @@ EXEC (@sql_str)</CommandText>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Label>H_ITEM_DESC</Label>
-                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_Item_nm")</Value>
+                                  <Label>H_WS_DESC</Label>
+                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_WS_DESC")</Value>
                                   <Style>
                                     <FontFamily>MS Gothic</FontFamily>
                                   </Style>
@@ -769,10 +681,63 @@ EXEC (@sql_str)</CommandText>
                             <PaddingBottom>2pt</PaddingBottom>
                           </Style>
                         </Textbox>
-                        <ColSpan>2</ColSpan>
                       </CellContents>
                     </TablixCell>
-                    <TablixCell />
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox58">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Label>H_ITEM_NO</Label>
+                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_ITEM_NO")</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Left</TextAlign>
+                              </Style>
+                            </Paragraph>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Label>H_ITEM_DESC</Label>
+                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_ITEM_DESC")</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Left</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox58</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Style>None</Style>
+                              <Width>1.5pt</Width>
+                            </Border>
+                            <TopBorder>
+                              <Style>Solid</Style>
+                            </TopBorder>
+                            <BottomBorder>
+                              <Style>Solid</Style>
+                            </BottomBorder>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
                     <TablixCell>
                       <CellContents>
                         <Textbox Name="Textbox59">
@@ -782,14 +747,16 @@ EXEC (@sql_str)</CommandText>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Label>H_DELV_LT</Label>
-                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_Delv_LT")</Value>
+                                  <Label>H_ITEM_NO</Label>
+                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_ITEM_TYPE")</Value>
                                   <Style>
                                     <FontFamily>MS Gothic</FontFamily>
                                   </Style>
                                 </TextRun>
                               </TextRuns>
-                              <Style />
+                              <Style>
+                                <TextAlign>Left</TextAlign>
+                              </Style>
                             </Paragraph>
                           </Paragraphs>
                           <rd:DefaultName>Textbox59</rd:DefaultName>
@@ -814,17 +781,15 @@ EXEC (@sql_str)</CommandText>
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox61">
+                        <Textbox Name="Textbox60">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Label>H_DAT_MIN_1</Label>
-                                  <Value>=IIf(Parameters!DATE_TYPE.Value=0
-, "  " + Mid(Fields!MIN_1.Value,5,2) + "/" + Right(Fields!MIN_1.Value,2)
-, Format(Fields!DAT_1.Value,"0000/00"))</Value>
+                                  <Label>H_SCH_DISB_DATE</Label>
+                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_SCH_DISB_DATE")</Value>
                                   <Style>
                                     <FontFamily>MS Gothic</FontFamily>
                                   </Style>
@@ -837,10 +802,8 @@ EXEC (@sql_str)</CommandText>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Label>H_MAX_1</Label>
-                                  <Value>=IIf(Parameters!DATE_TYPE.Value=0
-, "～" + Mid(Fields!MAX_1.Value,5,2) + "/" + Right(Fields!MAX_1.Value,2)
-, "")</Value>
+                                  <Label>H_SCH_START_DATE</Label>
+                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_SCH_START_DATE")</Value>
                                   <Style>
                                     <FontFamily>MS Gothic</FontFamily>
                                   </Style>
@@ -851,7 +814,7 @@ EXEC (@sql_str)</CommandText>
                               </Style>
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox61</rd:DefaultName>
+                          <rd:DefaultName>Textbox60</rd:DefaultName>
                           <Style>
                             <Border>
                               <Style>None</Style>
@@ -873,33 +836,29 @@ EXEC (@sql_str)</CommandText>
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox63">
+                        <Textbox Name="Textbox62">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Label>H_DAT_MIN_2</Label>
-                                  <Value>=IIf(Parameters!DATE_TYPE.Value=0
-, "  " + Mid(Fields!MIN_2.Value,5,2) + "/" + Right(Fields!MIN_2.Value,2)
-, Format(Fields!DAT_2.Value,"0000/00"))</Value>
+                                  <Label>H_JOC_CD</Label>
+                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_JOC_CD")</Value>
                                   <Style>
                                     <FontFamily>MS Gothic</FontFamily>
                                   </Style>
                                 </TextRun>
                               </TextRuns>
                               <Style>
-                                <TextAlign>Center</TextAlign>
+                                <TextAlign>Left</TextAlign>
                               </Style>
                             </Paragraph>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Label>H_MAX_2</Label>
-                                  <Value>=IIf(Parameters!DATE_TYPE.Value=0
-, "～" + Mid(Fields!MAX_2.Value,5,2) + "/" + Right(Fields!MAX_2.Value,2)
-, "")</Value>
+                                  <Label>H_REJ_QTY</Label>
+                                  <Value />
                                   <Style>
                                     <FontFamily>MS Gothic</FontFamily>
                                   </Style>
@@ -910,7 +869,7 @@ EXEC (@sql_str)</CommandText>
                               </Style>
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox63</rd:DefaultName>
+                          <rd:DefaultName>Textbox62</rd:DefaultName>
                           <Style>
                             <Border>
                               <Style>None</Style>
@@ -932,33 +891,15 @@ EXEC (@sql_str)</CommandText>
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox64">
+                        <Textbox Name="Textbox1">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Label>H_DAT_MIN_3</Label>
-                                  <Value>=IIf(Parameters!DATE_TYPE.Value=0
-, "  " + Mid(Fields!MIN_3.Value,5,2) + "/" + Right(Fields!MIN_3.Value,2)
-, Format(Fields!DAT_3.Value,"0000/00"))</Value>
-                                  <Style>
-                                    <FontFamily>MS Gothic</FontFamily>
-                                  </Style>
-                                </TextRun>
-                              </TextRuns>
-                              <Style>
-                                <TextAlign>Center</TextAlign>
-                              </Style>
-                            </Paragraph>
-                            <Paragraph>
-                              <TextRuns>
-                                <TextRun>
-                                  <Label>H_MAX_3</Label>
-                                  <Value>=IIf(Parameters!DATE_TYPE.Value=0
-, "～" + Mid(Fields!MAX_3.Value,5,2) + "/" + Right(Fields!MAX_3.Value,2)
-, "")</Value>
+                                  <Label>H_PLAN_QTY</Label>
+                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_PLAN_QTY")</Value>
                                   <Style>
                                     <FontFamily>MS Gothic</FontFamily>
                                   </Style>
@@ -969,7 +910,7 @@ EXEC (@sql_str)</CommandText>
                               </Style>
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox64</rd:DefaultName>
+                          <rd:DefaultName>Textbox1</rd:DefaultName>
                           <Style>
                             <Border>
                               <Style>None</Style>
@@ -991,33 +932,15 @@ EXEC (@sql_str)</CommandText>
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox65">
+                        <Textbox Name="Textbox67">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Label>H_DAT_MIN_4</Label>
-                                  <Value>=IIf(Parameters!DATE_TYPE.Value=0
-, "  " + Mid(Fields!MIN_4.Value,5,2) + "/" + Right(Fields!MIN_4.Value,2)
-, Format(Fields!DAT_4.Value,"0000/00"))</Value>
-                                  <Style>
-                                    <FontFamily>MS Gothic</FontFamily>
-                                  </Style>
-                                </TextRun>
-                              </TextRuns>
-                              <Style>
-                                <TextAlign>Center</TextAlign>
-                              </Style>
-                            </Paragraph>
-                            <Paragraph>
-                              <TextRuns>
-                                <TextRun>
-                                  <Label>H_MAX_4</Label>
-                                  <Value>=IIf(Parameters!DATE_TYPE.Value=0
-, "～" + Mid(Fields!MAX_4.Value,5,2) + "/" + Right(Fields!MAX_4.Value,2)
-, "")</Value>
+                                  <Label>H_ALLOC_QTY</Label>
+                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_ALLOC_QTY")</Value>
                                   <Style>
                                     <FontFamily>MS Gothic</FontFamily>
                                   </Style>
@@ -1028,7 +951,7 @@ EXEC (@sql_str)</CommandText>
                               </Style>
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox65</rd:DefaultName>
+                          <rd:DefaultName>Textbox67</rd:DefaultName>
                           <Style>
                             <Border>
                               <Style>None</Style>
@@ -1050,33 +973,15 @@ EXEC (@sql_str)</CommandText>
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox66">
+                        <Textbox Name="Textbox4">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Label>H_DAT_MIN_5</Label>
-                                  <Value>=IIf(Parameters!DATE_TYPE.Value=0
-, "  " + Mid(Fields!MIN_5.Value,5,2) + "/" + Right(Fields!MIN_5.Value,2)
-, Format(Fields!DAT_5.Value,"0000/00"))</Value>
-                                  <Style>
-                                    <FontFamily>MS Gothic</FontFamily>
-                                  </Style>
-                                </TextRun>
-                              </TextRuns>
-                              <Style>
-                                <TextAlign>Center</TextAlign>
-                              </Style>
-                            </Paragraph>
-                            <Paragraph>
-                              <TextRuns>
-                                <TextRun>
-                                  <Label>H_MAX_5</Label>
-                                  <Value>=IIf(Parameters!DATE_TYPE.Value=0
-, "～" + Mid(Fields!MAX_5.Value,5,2) + "/" + Right(Fields!MAX_5.Value,2)
-, "")</Value>
+                                  <Label>H_PLAN_DISB_QTY</Label>
+                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_PLAN_DISB_QTY")</Value>
                                   <Style>
                                     <FontFamily>MS Gothic</FontFamily>
                                   </Style>
@@ -1087,7 +992,7 @@ EXEC (@sql_str)</CommandText>
                               </Style>
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox66</rd:DefaultName>
+                          <rd:DefaultName>Textbox4</rd:DefaultName>
                           <Style>
                             <Border>
                               <Style>None</Style>
@@ -1109,44 +1014,37 @@ EXEC (@sql_str)</CommandText>
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox68">
+                        <Textbox Name="Textbox11">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Label>H_DAT_MIN_6</Label>
-                                  <Value>=IIf(Parameters!DATE_TYPE.Value=0
-, "  " + Mid(Fields!MIN_6.Value,5,2) + "/" + Right(Fields!MIN_6.Value,2)
-, Format(Fields!DAT_6.Value,"0000/00"))</Value>
+                                  <Label>H_INV_BAL</Label>
+                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_INV_BAL")
++"(" +Code.GetLabel(Parameters!LABELS,"rpt_FREE")  +")"</Value>
                                   <Style>
                                     <FontFamily>MS Gothic</FontFamily>
                                   </Style>
                                 </TextRun>
                               </TextRuns>
-                              <Style>
-                                <TextAlign>Center</TextAlign>
-                              </Style>
+                              <Style />
                             </Paragraph>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Label>H_MAX_6</Label>
-                                  <Value>=IIf(Parameters!DATE_TYPE.Value=0
-, "～" + Mid(Fields!MAX_6.Value,5,2) + "/" + Right(Fields!MAX_6.Value,2)
-, "")</Value>
+                                  <Label>H_ORD_QTY</Label>
+                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_ORDER_QTY")</Value>
                                   <Style>
                                     <FontFamily>MS Gothic</FontFamily>
                                   </Style>
                                 </TextRun>
                               </TextRuns>
-                              <Style>
-                                <TextAlign>Center</TextAlign>
-                              </Style>
+                              <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox68</rd:DefaultName>
+                          <rd:DefaultName>Textbox11</rd:DefaultName>
                           <Style>
                             <Border>
                               <Style>None</Style>
@@ -1168,103 +1066,37 @@ EXEC (@sql_str)</CommandText>
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Textbox Name="Textbox69">
+                        <Textbox Name="Textbox15">
                           <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
                           <Paragraphs>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Label>H_DAT_MIN_7</Label>
-                                  <Value>=IIf(Parameters!DATE_TYPE.Value=0
-, "  " + Mid(Fields!MIN_7.Value,5,2) + "/" + Right(Fields!MIN_7.Value,2)
-, Format(Fields!DAT_7.Value,"0000/00"))</Value>
+                                  <Label>H_WIP_BAL</Label>
+                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_WIP_BAL")
++"(" +Code.GetLabel(Parameters!LABELS,"rpt_FREE")  +")"</Value>
                                   <Style>
                                     <FontFamily>MS Gothic</FontFamily>
                                   </Style>
                                 </TextRun>
                               </TextRuns>
-                              <Style>
-                                <TextAlign>Center</TextAlign>
-                              </Style>
+                              <Style />
                             </Paragraph>
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Label>H_MAX_7</Label>
-                                  <Value>=IIf(Parameters!DATE_TYPE.Value=0
-, "～" + Mid(Fields!MAX_7.Value,5,2) + "/" + Right(Fields!MAX_7.Value,2)
-, "")</Value>
+                                  <Label>H_ORD_NO</Label>
+                                  <Value>=Code.GetLabel(Parameters!LABELS,"rpt_ORDER_NO")</Value>
                                   <Style>
                                     <FontFamily>MS Gothic</FontFamily>
                                   </Style>
                                 </TextRun>
                               </TextRuns>
-                              <Style>
-                                <TextAlign>Center</TextAlign>
-                              </Style>
+                              <Style />
                             </Paragraph>
                           </Paragraphs>
-                          <rd:DefaultName>Textbox69</rd:DefaultName>
-                          <Style>
-                            <Border>
-                              <Style>None</Style>
-                              <Width>1.5pt</Width>
-                            </Border>
-                            <TopBorder>
-                              <Style>Solid</Style>
-                            </TopBorder>
-                            <BottomBorder>
-                              <Style>Solid</Style>
-                            </BottomBorder>
-                            <PaddingLeft>2pt</PaddingLeft>
-                            <PaddingRight>2pt</PaddingRight>
-                            <PaddingTop>5pt</PaddingTop>
-                            <PaddingBottom>2pt</PaddingBottom>
-                          </Style>
-                        </Textbox>
-                      </CellContents>
-                    </TablixCell>
-                    <TablixCell>
-                      <CellContents>
-                        <Textbox Name="Textbox70">
-                          <CanGrow>true</CanGrow>
-                          <KeepTogether>true</KeepTogether>
-                          <Paragraphs>
-                            <Paragraph>
-                              <TextRuns>
-                                <TextRun>
-                                  <Label>H_DAT_MIN_8</Label>
-                                  <Value>=IIf(Parameters!DATE_TYPE.Value=0
-, "  " + Mid(Fields!MIN_8.Value,5,2) + "/" + Right(Fields!MIN_8.Value,2)
-, Format(Fields!DAT_8.Value,"0000/00"))</Value>
-                                  <Style>
-                                    <FontFamily>MS Gothic</FontFamily>
-                                  </Style>
-                                </TextRun>
-                              </TextRuns>
-                              <Style>
-                                <TextAlign>Center</TextAlign>
-                              </Style>
-                            </Paragraph>
-                            <Paragraph>
-                              <TextRuns>
-                                <TextRun>
-                                  <Label>H_MAX_8</Label>
-                                  <Value>=IIf(Parameters!DATE_TYPE.Value=0
-, "～" + Mid(Fields!MAX_8.Value,5,2) + "/" + Right(Fields!MAX_8.Value,2)
-, "")</Value>
-                                  <Style>
-                                    <FontFamily>MS Gothic</FontFamily>
-                                  </Style>
-                                </TextRun>
-                              </TextRuns>
-                              <Style>
-                                <TextAlign>Center</TextAlign>
-                              </Style>
-                            </Paragraph>
-                          </Paragraphs>
-                          <rd:DefaultName>Textbox70</rd:DefaultName>
+                          <rd:DefaultName>Textbox15</rd:DefaultName>
                           <Style>
                             <Border>
                               <Style>None</Style>
@@ -1287,13 +1119,128 @@ EXEC (@sql_str)</CommandText>
                   </TablixCells>
                 </TablixRow>
                 <TablixRow>
-                  <Height>0.8cm</Height>
+                  <Height>1.05cm</Height>
                   <TablixCells>
                     <TablixCell>
                       <CellContents>
-                        <Rectangle Name="Rectangle1">
+                        <Textbox Name="Textbox7">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Label>@ROW_NO</Label>
+                                  <Value>=RunningValue(Fields!CHILD_FLAG.Value,Sum,"WHS_CD")</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <Format>##0</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Center</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox7</rd:DefaultName>
+                          <Visibility>
+                            <Hidden>=Fields!CHILD_FLAG.Value=0</Hidden>
+                          </Visibility>
+                          <Style>
+                            <Border>
+                              <Color>LightGrey</Color>
+                              <Style>None</Style>
+                            </Border>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                        <rd:Selected>true</rd:Selected>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox10">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>=Fields!WS_CD.Value</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style />
+                            </Paragraph>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>=Fields!WS_DESC.Value</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style />
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox10</rd:DefaultName>
+                          <Visibility>
+                            <Hidden>=Fields!CHILD_FLAG.Value=0</Hidden>
+                          </Visibility>
+                          <Style>
+                            <Border>
+                              <Color>LightGrey</Color>
+                              <Style>None</Style>
+                            </Border>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Rectangle Name="Rectangle2">
                           <ReportItems>
-                            <Textbox Name="Textbox97">
+                            <Textbox Name="Textbox87">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Fields!JOC_CD.Value</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.1cm</Top>
+                              <Left>8cm</Left>
+                              <Height>0.4cm</Height>
+                              <Width>1.935cm</Width>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox75">
                               <CanGrow>true</CanGrow>
                               <KeepTogether>true</KeepTogether>
                               <Paragraphs>
@@ -1312,19 +1259,16 @@ EXEC (@sql_str)</CommandText>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.1cm</Top>
                               <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>3.35333cm</Width>
+                              <Height>0.4cm</Height>
+                              <Width>2.8cm</Width>
+                              <ZIndex>1</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
                                 </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
                               </Style>
                             </Textbox>
-                            <Textbox Name="Textbox98">
+                            <Textbox Name="Textbox77">
                               <CanGrow>true</CanGrow>
                               <KeepTogether>true</KeepTogether>
                               <Paragraphs>
@@ -1341,51 +1285,35 @@ EXEC (@sql_str)</CommandText>
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>0.1cm</Top>
-                              <Left>3.64542cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>4.77125cm</Width>
-                              <ZIndex>1</ZIndex>
+                              <Top>0.56cm</Top>
+                              <Left>0.1cm</Left>
+                              <Height>0.4cm</Height>
+                              <Width>7.50521cm</Width>
+                              <ZIndex>2</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
                                 </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
                               </Style>
                             </Textbox>
-                          </ReportItems>
-                          <KeepTogether>true</KeepTogether>
-                          <Style>
-                            <Border>
-                              <Style>None</Style>
-                            </Border>
-                            <BottomBorder>
-                              <Style>Dotted</Style>
-                            </BottomBorder>
-                          </Style>
-                        </Rectangle>
-                        <ColSpan>2</ColSpan>
-                      </CellContents>
-                    </TablixCell>
-                    <TablixCell />
-                    <TablixCell>
-                      <CellContents>
-                        <Rectangle Name="Rectangle2">
-                          <ReportItems>
-                            <Textbox Name="Textbox101">
+                            <Textbox Name="Textbox88">
                               <CanGrow>true</CanGrow>
                               <KeepTogether>true</KeepTogether>
                               <Paragraphs>
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Value>=Fields!DELV_LT.Value</Value>
+                                      <Label>@ITEM_TYPE</Label>
+                                      <Value>=Switch(Fields!ITEM_TYPE.Value = "21", Code.GetLabel(Parameters!LABELS,"hdnITEM_TYPE0")
+,Fields!ITEM_TYPE.Value = "22", Code.GetLabel(Parameters!LABELS,"hdnITEM_TYPE1")
+,Fields!ITEM_TYPE.Value = "30", Code.GetLabel(Parameters!LABELS,"hdnITEM_TYPE2")
+,Fields!ITEM_TYPE.Value = "51", Code.GetLabel(Parameters!LABELS,"hdnITEM_TYPE3")
+,Fields!ITEM_TYPE.Value = "52", Code.GetLabel(Parameters!LABELS,"hdnITEM_TYPE4")
+,Fields!ITEM_TYPE.Value = "91", Code.GetLabel(Parameters!LABELS,"hdnITEM_TYPE5")
+,Fields!ITEM_TYPE.Value = "99", Code.GetLabel(Parameters!LABELS,"hdnITEM_TYPE6")
+)</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
                                       </Style>
                                     </TextRun>
                                   </TextRuns>
@@ -1396,17 +1324,48 @@ EXEC (@sql_str)</CommandText>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.1cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>2.2cm</Width>
+                              <Left>3.0975cm</Left>
+                              <Height>0.4cm</Height>
+                              <Width>2.4025cm</Width>
+                              <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
                                 </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox89">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Label>@SCH_DISB_DATE</Label>
+                                      <Value>=IIf(Fields!CHILD_FLAG.Value=1,
+Fields!SCH_DISB_DATE.Value,
+Fields!SCH_START_DATE.Value)</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                        <Format>0000/00/00</Format>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.1cm</Top>
+                              <Left>5.7cm</Left>
+                              <Height>0.4cm</Height>
+                              <Width>2cm</Width>
+                              <ZIndex>4</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
                               </Style>
                             </Textbox>
                           </ReportItems>
@@ -1415,48 +1374,76 @@ EXEC (@sql_str)</CommandText>
                             <Border>
                               <Style>None</Style>
                             </Border>
-                            <BottomBorder>
-                              <Style>Dotted</Style>
-                            </BottomBorder>
                           </Style>
                         </Rectangle>
+                        <ColSpan>4</ColSpan>
                       </CellContents>
                     </TablixCell>
+                    <TablixCell />
+                    <TablixCell />
+                    <TablixCell />
                     <TablixCell>
                       <CellContents>
                         <Rectangle Name="Rectangle3">
                           <ReportItems>
-                            <Textbox Name="Textbox106">
+                            <Textbox Name="Textbox90">
                               <CanGrow>true</CanGrow>
                               <KeepTogether>true</KeepTogether>
                               <Paragraphs>
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Label>PUR_1</Label>
-                                      <Value>=IIf(Fields!PUR_1.Value=0, NOTHING, Fields!PUR_1.Value)</Value>
+                                      <Value>=Fields!PLAN_QTY.Value</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                         <Format>#,0.00;-#,0.00</Format>
                                       </Style>
                                     </TextRun>
                                   </TextRuns>
-                                  <Style />
+                                  <Style>
+                                    <TextAlign>Right</TextAlign>
+                                  </Style>
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.1cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.9cm</Width>
+                              <Left>0.05cm</Left>
+                              <Height>0.4cm</Height>
+                              <Width>2cm</Width>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
                                 </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox91">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Fields!ITEM_UMSR.Value</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.1cm</Top>
+                              <Left>2.2cm</Left>
+                              <Height>0.4cm</Height>
+                              <Width>1cm</Width>
+                              <ZIndex>1</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
                               </Style>
                             </Textbox>
                           </ReportItems>
@@ -1465,361 +1452,182 @@ EXEC (@sql_str)</CommandText>
                             <Border>
                               <Style>None</Style>
                             </Border>
-                            <BottomBorder>
-                              <Style>Dotted</Style>
-                            </BottomBorder>
                           </Style>
                         </Rectangle>
                       </CellContents>
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Rectangle Name="Rectangle4">
-                          <ReportItems>
-                            <Textbox Name="Textbox111">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>PUR_2</Label>
-                                      <Value>=IIf(Fields!PUR_2.Value=0, NOTHING, Fields!PUR_2.Value)</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>0.1cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.9cm</Width>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                          </ReportItems>
+                        <Textbox Name="Textbox26">
+                          <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>=Fields!WIP_ALLOC_QTY.Value</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <Format>#,0.00;-#,0.00</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Right</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox26</rd:DefaultName>
                           <Style>
                             <Border>
+                              <Color>LightGrey</Color>
                               <Style>None</Style>
                             </Border>
-                            <BottomBorder>
-                              <Style>Dotted</Style>
-                            </BottomBorder>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
                           </Style>
-                        </Rectangle>
+                        </Textbox>
                       </CellContents>
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Rectangle Name="Rectangle5">
-                          <ReportItems>
-                            <Textbox Name="Textbox115">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>PUR_3</Label>
-                                      <Value>=IIf(Fields!PUR_3.Value=0, NOTHING, Fields!PUR_3.Value)</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>0.1cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.9cm</Width>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                          </ReportItems>
+                        <Textbox Name="Textbox8">
+                          <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>=Fields!PLAN_DISB_QTY.Value</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <Format>#,0.00;-#,0.00</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Right</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox8</rd:DefaultName>
                           <Style>
                             <Border>
+                              <Color>LightGrey</Color>
                               <Style>None</Style>
                             </Border>
-                            <BottomBorder>
-                              <Style>Dotted</Style>
-                            </BottomBorder>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
                           </Style>
-                        </Rectangle>
+                        </Textbox>
                       </CellContents>
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Rectangle Name="Rectangle6">
-                          <ReportItems>
-                            <Textbox Name="Textbox119">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>PUR_4</Label>
-                                      <Value>=IIf(Fields!PUR_4.Value=0, NOTHING, Fields!PUR_4.Value)</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>0.1cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.9cm</Width>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                          </ReportItems>
+                        <Textbox Name="Textbox12">
+                          <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>=Fields!INV_BAL.Value</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <Format>#,0.00;-#,0.00</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Right</TextAlign>
+                              </Style>
+                            </Paragraph>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value>=Fields!FREE_INV_BAL.Value</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <Format>#,0.00;-#,0.00</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Right</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox12</rd:DefaultName>
                           <Style>
                             <Border>
+                              <Color>LightGrey</Color>
                               <Style>None</Style>
                             </Border>
-                            <BottomBorder>
-                              <Style>Dotted</Style>
-                            </BottomBorder>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
                           </Style>
-                        </Rectangle>
+                        </Textbox>
                       </CellContents>
                     </TablixCell>
                     <TablixCell>
                       <CellContents>
-                        <Rectangle Name="Rectangle7">
-                          <ReportItems>
-                            <Textbox Name="Textbox123">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>PUR_5</Label>
-                                      <Value>=IIf(Fields!PUR_5.Value=0, NOTHING, Fields!PUR_5.Value)</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>0.1cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.9cm</Width>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                          </ReportItems>
+                        <Textbox Name="Textbox17">
+                          <CanGrow>true</CanGrow>
                           <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Label>@WIP_BAL</Label>
+                                  <Value>=Switch(Fields!CHILD_FLAG.Value = 1, Fields!WIP_BAL.Value
+,Fields!CHILD_FLAG.Value = 0, Fields!ORDER_NO.Value
+)</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <Format>=Switch(Fields!CHILD_FLAG.Value = 1, "#,0.00;-#,0.00")</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Right</TextAlign>
+                              </Style>
+                            </Paragraph>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Label>@WIP_FREE</Label>
+                                  <Value>=Switch(Fields!CHILD_FLAG.Value = 1, Fields!WIP_FREE_INV_BAL.Value
+,Fields!CHILD_FLAG.Value = 0, ""
+)</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <Format>=Switch(Fields!CHILD_FLAG.Value = 1, "#,0.00;-#,0.00")</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Right</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox17</rd:DefaultName>
                           <Style>
                             <Border>
+                              <Color>LightGrey</Color>
                               <Style>None</Style>
                             </Border>
-                            <BottomBorder>
-                              <Style>Dotted</Style>
-                            </BottomBorder>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
                           </Style>
-                        </Rectangle>
-                      </CellContents>
-                    </TablixCell>
-                    <TablixCell>
-                      <CellContents>
-                        <Rectangle Name="Rectangle8">
-                          <ReportItems>
-                            <Textbox Name="Textbox127">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>PUR_6</Label>
-                                      <Value>=IIf(Fields!PUR_6.Value=0, NOTHING, Fields!PUR_6.Value)</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>0.1cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.9cm</Width>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                          </ReportItems>
-                          <KeepTogether>true</KeepTogether>
-                          <Style>
-                            <Border>
-                              <Style>None</Style>
-                            </Border>
-                            <BottomBorder>
-                              <Style>Dotted</Style>
-                            </BottomBorder>
-                          </Style>
-                        </Rectangle>
-                      </CellContents>
-                    </TablixCell>
-                    <TablixCell>
-                      <CellContents>
-                        <Rectangle Name="Rectangle9">
-                          <ReportItems>
-                            <Textbox Name="Textbox131">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>PUR_7</Label>
-                                      <Value>=IIf(Fields!PUR_7.Value=0, NOTHING, Fields!PUR_7.Value)</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>0.1cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.9cm</Width>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                          </ReportItems>
-                          <KeepTogether>true</KeepTogether>
-                          <Style>
-                            <Border>
-                              <Style>None</Style>
-                            </Border>
-                            <BottomBorder>
-                              <Style>Dotted</Style>
-                            </BottomBorder>
-                          </Style>
-                        </Rectangle>
-                      </CellContents>
-                    </TablixCell>
-                    <TablixCell>
-                      <CellContents>
-                        <Rectangle Name="Rectangle10">
-                          <ReportItems>
-                            <Textbox Name="Textbox135">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>PUR_8</Label>
-                                      <Value>=IIf(Fields!PUR_8.Value=0, NOTHING, Fields!PUR_8.Value)</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>#,0.00;-#,0.00</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>0.1cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.9cm</Width>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                          </ReportItems>
-                          <KeepTogether>true</KeepTogether>
-                          <Style>
-                            <Border>
-                              <Style>None</Style>
-                            </Border>
-                            <BottomBorder>
-                              <Style>Dotted</Style>
-                            </BottomBorder>
-                          </Style>
-                        </Rectangle>
+                        </Textbox>
                       </CellContents>
                     </TablixCell>
                   </TablixCells>
@@ -1844,25 +1652,32 @@ EXEC (@sql_str)</CommandText>
             <TablixRowHierarchy>
               <TablixMembers>
                 <TablixMember>
-                  <Group Name="VENDOR_CD">
+                  <Group Name="WHS_CD">
                     <GroupExpressions>
-                      <GroupExpression>=Fields!VENDOR_CD.Value</GroupExpression>
+                      <GroupExpression>=Fields!WHS_CD.Value</GroupExpression>
                     </GroupExpressions>
                     <PageBreak>
                       <BreakLocation>Between</BreakLocation>
                     </PageBreak>
+                    <Variables>
+                      <Variable Name="RTotal">
+                        <Value />
+                      </Variable>
+                    </Variables>
                   </Group>
                   <SortExpressions>
                     <SortExpression>
-                      <Value>=Fields!VENDOR_CD.Value</Value>
+                      <Value>=Fields!WHS_CD.Value</Value>
                     </SortExpression>
                   </SortExpressions>
                   <TablixMembers>
                     <TablixMember>
                       <KeepWithGroup>After</KeepWithGroup>
+                      <RepeatOnNewPage>true</RepeatOnNewPage>
                     </TablixMember>
                     <TablixMember>
                       <KeepWithGroup>After</KeepWithGroup>
+                      <RepeatOnNewPage>true</RepeatOnNewPage>
                     </TablixMember>
                     <TablixMember>
                       <Group Name="详细信息" />
@@ -1876,11 +1691,11 @@ EXEC (@sql_str)</CommandText>
             </TablixRowHierarchy>
             <RepeatColumnHeaders>true</RepeatColumnHeaders>
             <RepeatRowHeaders>true</RepeatRowHeaders>
-            <DataSetName>PurFcstInqList</DataSetName>
+            <DataSetName>InvShortList</DataSetName>
             <Top>0.2cm</Top>
-            <Left>0.34078cm</Left>
-            <Height>3.2cm</Height>
-            <Width>27.87131cm</Width>
+            <Left>0.2cm</Left>
+            <Height>2.75cm</Height>
+            <Width>28.1cm</Width>
             <Style>
               <Border>
                 <Style>None</Style>
@@ -1888,10 +1703,10 @@ EXEC (@sql_str)</CommandText>
             </Style>
           </Tablix>
         </ReportItems>
-        <Height>1.44308in</Height>
+        <Height>1.25312in</Height>
         <Style />
       </Body>
-      <Width>11.18512in</Width>
+      <Width>11.25in</Width>
       <Page>
         <PageHeader>
           <Height>1.5cm</Height>
@@ -1941,7 +1756,7 @@ EXEC (@sql_str)</CommandText>
                   <TextRuns>
                     <TextRun>
                       <Label>H_PAGE</Label>
-                      <Value>=Code.GetLabel(Parameters!LABELS,"rpt_Page")</Value>
+                      <Value>=Code.GetLabel(Parameters!LABELS,"rpt_PAGE")</Value>
                       <Style>
                         <FontFamily>MS Gothic</FontFamily>
                         <FontSize>8pt</FontSize>
@@ -1977,7 +1792,7 @@ EXEC (@sql_str)</CommandText>
                   <TextRuns>
                     <TextRun>
                       <Label>H_PRT_DATE</Label>
-                      <Value>=Code.GetLabel(Parameters!LABELS,"rpt_Print_date")</Value>
+                      <Value>=Code.GetLabel(Parameters!LABELS,"rpt_DATE")</Value>
                       <Style>
                         <FontFamily>MS Gothic</FontFamily>
                         <FontSize>8pt</FontSize>
@@ -2090,12 +1905,9 @@ EXEC (@sql_str)</CommandText>
           <ReportItems>
             <Line Name="Line1">
               <Top>0.09964cm</Top>
-              <Left>0.34078cm</Left>
+              <Left>0.2cm</Left>
               <Height>0cm</Height>
-              <Width>27.87131cm</Width>
-              <Visibility>
-                <Hidden>true</Hidden>
-              </Visibility>
+              <Width>28.1cm</Width>
               <Style>
                 <Border>
                   <Style>Solid</Style>
@@ -2180,8 +1992,8 @@ EXEC (@sql_str)</CommandText>
         </PageFooter>
         <PageHeight>21cm</PageHeight>
         <PageWidth>29.7cm</PageWidth>
-        <LeftMargin>0.5cm</LeftMargin>
-        <RightMargin>0.5cm</RightMargin>
+        <LeftMargin>0.25cm</LeftMargin>
+        <RightMargin>0.25cm</RightMargin>
         <TopMargin>0.5cm</TopMargin>
         <BottomMargin>0.5cm</BottomMargin>
         <ColumnSpacing>0.13cm</ColumnSpacing>
@@ -2211,7 +2023,7 @@ EXEC (@sql_str)</CommandText>
       <Nullable>true</Nullable>
       <DefaultValue>
         <Values>
-          <Value>PurFcstInq_frmMain</Value>
+          <Value>InvShortInq_frmMain</Value>
         </Values>
       </DefaultValue>
       <AllowBlank>true</AllowBlank>
@@ -2223,7 +2035,7 @@ EXEC (@sql_str)</CommandText>
       <Nullable>true</Nullable>
       <DefaultValue>
         <Values>
-          <Value>PurFcstInq</Value>
+          <Value>InvShortList</Value>
         </Values>
       </DefaultValue>
       <AllowBlank>true</AllowBlank>
@@ -2249,46 +2061,6 @@ EXEC (@sql_str)</CommandText>
       </ValidValues>
       <MultiValue>true</MultiValue>
     </ReportParameter>
-    <ReportParameter Name="DATE_TYPE">
-      <DataType>Integer</DataType>
-      <DefaultValue>
-        <Values>
-          <Value>0</Value>
-        </Values>
-      </DefaultValue>
-      <Prompt>発行日付単位: 0.週 1.月</Prompt>
-      <ValidValues>
-        <ParameterValues>
-          <ParameterValue>
-            <Value>0</Value>
-            <Label>週</Label>
-          </ParameterValue>
-          <ParameterValue>
-            <Value>1</Value>
-            <Label>月</Label>
-          </ParameterValue>
-        </ParameterValues>
-      </ValidValues>
-    </ReportParameter>
-    <ReportParameter Name="CALENDAR_DATE">
-      <DataType>Integer</DataType>
-      <Prompt>開始日付</Prompt>
-    </ReportParameter>
-    <ReportParameter Name="TTL_WEEK">
-      <DataType>Integer</DataType>
-      <Prompt>開始週</Prompt>
-    </ReportParameter>
-    <ReportParameter Name="VENDOR_CD">
-      <DataType>String</DataType>
-      <Nullable>true</Nullable>
-      <DefaultValue>
-        <Values>
-          <Value />
-        </Values>
-      </DefaultValue>
-      <AllowBlank>true</AllowBlank>
-      <Prompt>仕入先</Prompt>
-    </ReportParameter>
     <ReportParameter Name="ITEM_NO">
       <DataType>String</DataType>
       <Nullable>true</Nullable>
@@ -2298,7 +2070,66 @@ EXEC (@sql_str)</CommandText>
         </Values>
       </DefaultValue>
       <AllowBlank>true</AllowBlank>
-      <Prompt>品目</Prompt>
+      <Prompt>親品目コード</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="SCH_ID">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <DefaultValue>
+        <Values>
+          <Value />
+        </Values>
+      </DefaultValue>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>計画担当者</Prompt>
+      <Hidden>true</Hidden>
+    </ReportParameter>
+    <ReportParameter Name="WS_CD">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <DefaultValue>
+        <Values>
+          <Value />
+        </Values>
+      </DefaultValue>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>作業区</Prompt>
+      <Hidden>true</Hidden>
+    </ReportParameter>
+    <ReportParameter Name="WHS_CD">
+      <DataType>String</DataType>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>倉庫コード</Prompt>
+      <MultiValue>true</MultiValue>
+    </ReportParameter>
+    <ReportParameter Name="JOC_CD">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <DefaultValue>
+        <Values>
+          <Value />
+        </Values>
+      </DefaultValue>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>製番</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="SCH_DISB_BEG_DATE">
+      <DataType>Integer</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>0</Value>
+        </Values>
+      </DefaultValue>
+      <Prompt>出庫予定日From</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="SCH_DISB_END_DATE">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>0</Value>
+        </Values>
+      </DefaultValue>
+      <Prompt>出庫予定日To</Prompt>
     </ReportParameter>
   </ReportParameters>
   <Code>Public Function GetLabel(P as Parameter, Label as String) as String

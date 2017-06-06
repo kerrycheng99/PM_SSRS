@@ -1888,7 +1888,7 @@ EXEC (@sql_str)</CommandText>
             </Style>
           </Tablix>
         </ReportItems>
-        <Height>2.50558in</Height>
+        <Height>1.44308in</Height>
         <Style />
       </Body>
       <Width>11.18512in</Width>
