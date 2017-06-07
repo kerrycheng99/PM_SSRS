@@ -10,6 +10,30 @@
   <DataSets />
   <Reports>
     <ProjectItem>
+      <Name>InvAdjListI.rdl</Name>
+      <FullPath>InvAdjListI.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>InvAdjListI_BCD.rdl</Name>
+      <FullPath>InvAdjListI_BCD.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>InvAdjListI_QRCD.rdl</Name>
+      <FullPath>InvAdjListI_QRCD.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>InvAdjListO.rdl</Name>
+      <FullPath>InvAdjListO.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>InvAdjListO_BCD.rdl</Name>
+      <FullPath>InvAdjListO_BCD.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>InvAdjListO_QRCD.rdl</Name>
+      <FullPath>InvAdjListO_QRCD.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
       <Name>InvDisbList.rdl</Name>
       <FullPath>InvDisbList.rdl</FullPath>
     </ProjectItem>
@@ -146,28 +170,8 @@
       <FullPath>PurSupplySheetPrt2.rdl</FullPath>
     </ProjectItem>
     <ProjectItem>
-      <Name>InvAdjListI.rdl</Name>
-      <FullPath>InvAdjListI.rdl</FullPath>
-    </ProjectItem>
-    <ProjectItem>
-      <Name>InvAdjListI_BCD.rdl</Name>
-      <FullPath>InvAdjListI_BCD.rdl</FullPath>
-    </ProjectItem>
-    <ProjectItem>
-      <Name>InvAdjListI_QRCD.rdl</Name>
-      <FullPath>InvAdjListI_QRCD.rdl</FullPath>
-    </ProjectItem>
-    <ProjectItem>
-      <Name>InvAdjListO.rdl</Name>
-      <FullPath>InvAdjListO.rdl</FullPath>
-    </ProjectItem>
-    <ProjectItem>
-      <Name>InvAdjListO_BCD.rdl</Name>
-      <FullPath>InvAdjListO_BCD.rdl</FullPath>
-    </ProjectItem>
-    <ProjectItem>
-      <Name>InvAdjListO_QRCD.rdl</Name>
-      <FullPath>InvAdjListO_QRCD.rdl</FullPath>
+      <Name>InvRcvDisbList.rdl</Name>
+      <FullPath>InvRcvDisbList.rdl</FullPath>
     </ProjectItem>
   </Reports>
   <Configurations>
