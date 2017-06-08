@@ -413,7 +413,7 @@ ORDER BY I.WHS_CD</CommandText>
                               <Top>0.1cm</Top>
                               <Left>0.2cm</Left>
                               <Height>0.4cm</Height>
-                              <Width>13.82826cm</Width>
+                              <Width>5.07055cm</Width>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -461,15 +461,31 @@ ORDER BY I.WHS_CD</CommandText>
                                         <FontFamily>MS Gothic</FontFamily>
                                       </Style>
                                     </TextRun>
-                                    <TextRun>
-                                      <Value xml:space="preserve">     </Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                      </Style>
-                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <Top>0.6cm</Top>
+                              <Left>0.2cm</Left>
+                              <Height>0.4cm</Height>
+                              <Width>10.2cm</Width>
+                              <ZIndex>1</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="TxtConditions3">
+                              <CanGrow>true</CanGrow>
+                              <CanShrink>true</CanShrink>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
                                     <TextRun>
                                       <Label>H_PRICE</Label>
-                                      <Value>=IIf(Parameters!INPUT_TYPE.Value=0, "", Code.GetLabel(Parameters!LABELS,"rpt_PRICE"))</Value>
+                                      <Value>=Code.GetLabel(Parameters!LABELS,"rpt_PRICE")</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                         <FontWeight>Normal</FontWeight>
@@ -495,14 +511,19 @@ ORDER BY I.WHS_CD</CommandText>
                                       </Style>
                                     </TextRun>
                                   </TextRuns>
-                                  <Style />
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
                                 </Paragraph>
                               </Paragraphs>
                               <Top>0.6cm</Top>
-                              <Left>0.2cm</Left>
+                              <Left>12.6cm</Left>
                               <Height>0.4cm</Height>
-                              <Width>13.82826cm</Width>
-                              <ZIndex>1</ZIndex>
+                              <Width>6.30861cm</Width>
+                              <ZIndex>2</ZIndex>
+                              <Visibility>
+                                <Hidden>=Parameters!INPUT_TYPE.Value=0</Hidden>
+                              </Visibility>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -1592,20 +1613,6 @@ Switch(Fields!AMT_DEC.Value = 0,"#,0;-#,0"
                                 <TextAlign>Right</TextAlign>
                               </Style>
                             </Paragraph>
-                            <Paragraph>
-                              <TextRuns>
-                                <TextRun>
-                                  <Value />
-                                  <Style>
-                                    <FontFamily>MS Gothic</FontFamily>
-                                    <Format>#,0.00;-#,0.00</Format>
-                                  </Style>
-                                </TextRun>
-                              </TextRuns>
-                              <Style>
-                                <TextAlign>Right</TextAlign>
-                              </Style>
-                            </Paragraph>
                           </Paragraphs>
                           <rd:DefaultName>Textbox12</rd:DefaultName>
                           <Style>
@@ -1763,14 +1770,7 @@ Switch(Fields!AMT_DEC.Value = 0,"#,0;-#,0"
                               <TextRuns>
                                 <TextRun>
                                   <Label>@STOCK_NOW</Label>
-                                  <Value>=Variables!LAST_MONTH.Value
-+ Variables!STOCK_IN.Value
-+ Variables!ADJUST_ADD.Value
-+ Variables!TRANSFER_INPUT.Value
-- Variables!TRANSFER_OUT.Value
-- Variables!STOCK_OUT.Value
-- Variables!RETURN.Value
-- Variables!ADJUST_DECR.Value</Value>
+                                  <Value>=Variables!SUM_LINE.Value</Value>
                                   <Style>
                                     <FontFamily>MS Gothic</FontFamily>
                                     <FontSize>8pt</FontSize>
@@ -1791,6 +1791,487 @@ Switch(Fields!AMT_DEC.Value = 0,"#,0;-#,0"
                             </Paragraph>
                           </Paragraphs>
                           <rd:DefaultName>Textbox24</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>LightGrey</Color>
+                              <Style>None</Style>
+                            </Border>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                  </TablixCells>
+                </TablixRow>
+                <TablixRow>
+                  <Height>0.6cm</Height>
+                  <TablixCells>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox125">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Value />
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <FontSize>8pt</FontSize>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Center</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox125</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>LightGrey</Color>
+                              <Style>None</Style>
+                            </Border>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Rectangle Name="Rectangle3">
+                          <ReportItems>
+                            <Textbox Name="Textbox90">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Label>@LAST_MONTH_T</Label>
+                                      <Value>=sum(Fields!BEG_INV_AMT.Value)</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                        <FontSize>8pt</FontSize>
+                                        <Format>=Microsoft.VisualBasic.Interaction.IIf(Parameters!INPUT_TYPE.Value = 0, "N2", Microsoft.VisualBasic.Interaction.Switch(Fields!AMT_DEC.Value = 0, "#,0;-#,0", Fields!AMT_DEC.Value = 1, "#,0.0;-#,0.0", Fields!AMT_DEC.Value = 2, "#,0.00;-#,0.00", Fields!AMT_DEC.Value = 3, "#,0.000;-#,0.000", Fields!AMT_DEC.Value = 4, "#,0.0000;-#,0.0000", Fields!AMT_DEC.Value = 5, "#,0.00000;-#,0.00000"))</Format>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Right</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.15cm</Top>
+                              <Left>6.8cm</Left>
+                              <Height>0.3cm</Height>
+                              <Width>2cm</Width>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox91">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Label>H_SUM_TITLE</Label>
+                                      <Value>=Code.GetLabel(Parameters!LABELS,"rpt_SUM")</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                        <Format>=Microsoft.VisualBasic.Interaction.IIf(Parameters!INPUT_TYPE.Value = 0, "N2", Microsoft.VisualBasic.Interaction.Switch(Fields!AMT_DEC.Value = 0, "#,0;-#,0", Fields!AMT_DEC.Value = 1, "#,0.0;-#,0.0", Fields!AMT_DEC.Value = 2, "#,0.00;-#,0.00", Fields!AMT_DEC.Value = 3, "#,0.000;-#,0.000", Fields!AMT_DEC.Value = 4, "#,0.0000;-#,0.0000", Fields!AMT_DEC.Value = 5, "#,0.00000;-#,0.00000"))</Format>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Right</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.1cm</Top>
+                              <Left>4.6cm</Left>
+                              <Height>0.4cm</Height>
+                              <Width>2cm</Width>
+                              <ZIndex>1</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                              </Style>
+                            </Textbox>
+                          </ReportItems>
+                          <KeepTogether>true</KeepTogether>
+                          <Style>
+                            <Border>
+                              <Style>None</Style>
+                            </Border>
+                          </Style>
+                        </Rectangle>
+                        <ColSpan>4</ColSpan>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell />
+                    <TablixCell />
+                    <TablixCell />
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox130">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Label>@STOCK_IN_T</Label>
+                                  <Value>=Sum(Fields!QTY_R1.Value*Fields!CUR_PRC.Value)</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <FontSize>8pt</FontSize>
+                                    <Format>=IIf(Parameters!INPUT_TYPE.Value=0, "N2",
+Switch(Fields!AMT_DEC.Value = 0,"#,0;-#,0"
+,Fields!AMT_DEC.Value = 1,"#,0.0;-#,0.0"
+,Fields!AMT_DEC.Value = 2,"#,0.00;-#,0.00"
+,Fields!AMT_DEC.Value = 3,"#,0.000;-#,0.000"
+,Fields!AMT_DEC.Value = 4,"#,0.0000;-#,0.0000"
+,Fields!AMT_DEC.Value = 5,"#,0.00000;-#,0.00000"
+))</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Right</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox130</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Style>None</Style>
+                            </Border>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox131">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Label>@ADJUST_ADD_T</Label>
+                                  <Value>=Sum(Fields!QTY_R2.Value*Fields!CUR_PRC.Value)</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <FontSize>8pt</FontSize>
+                                    <Format>=IIf(Parameters!INPUT_TYPE.Value=0, "N2",
+Switch(Fields!AMT_DEC.Value = 0,"#,0;-#,0"
+,Fields!AMT_DEC.Value = 1,"#,0.0;-#,0.0"
+,Fields!AMT_DEC.Value = 2,"#,0.00;-#,0.00"
+,Fields!AMT_DEC.Value = 3,"#,0.000;-#,0.000"
+,Fields!AMT_DEC.Value = 4,"#,0.0000;-#,0.0000"
+,Fields!AMT_DEC.Value = 5,"#,0.00000;-#,0.00000"
+))</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Right</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox131</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>LightGrey</Color>
+                              <Style>None</Style>
+                            </Border>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox132">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Label>@STOCK_OUT_T</Label>
+                                  <Value>=Sum(Fields!QTY_R3.Value*Fields!CUR_PRC.Value)</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <FontSize>8pt</FontSize>
+                                    <Format>=IIf(Parameters!INPUT_TYPE.Value=0, "N2",
+Switch(Fields!AMT_DEC.Value = 0,"#,0;-#,0"
+,Fields!AMT_DEC.Value = 1,"#,0.0;-#,0.0"
+,Fields!AMT_DEC.Value = 2,"#,0.00;-#,0.00"
+,Fields!AMT_DEC.Value = 3,"#,0.000;-#,0.000"
+,Fields!AMT_DEC.Value = 4,"#,0.0000;-#,0.0000"
+,Fields!AMT_DEC.Value = 5,"#,0.00000;-#,0.00000"
+))</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Right</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox132</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>LightGrey</Color>
+                              <Style>None</Style>
+                            </Border>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox133">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Label>@RETURN_T</Label>
+                                  <Value>=Sum(Fields!QTY_R4.Value*Fields!CUR_PRC.Value)</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <FontSize>8pt</FontSize>
+                                    <Format>=IIf(Parameters!INPUT_TYPE.Value=0, "N2",
+Switch(Fields!AMT_DEC.Value = 0,"#,0;-#,0"
+,Fields!AMT_DEC.Value = 1,"#,0.0;-#,0.0"
+,Fields!AMT_DEC.Value = 2,"#,0.00;-#,0.00"
+,Fields!AMT_DEC.Value = 3,"#,0.000;-#,0.000"
+,Fields!AMT_DEC.Value = 4,"#,0.0000;-#,0.0000"
+,Fields!AMT_DEC.Value = 5,"#,0.00000;-#,0.00000"
+))</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Right</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox133</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>LightGrey</Color>
+                              <Style>None</Style>
+                            </Border>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox134">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Label>@ADJUST_DECR_T</Label>
+                                  <Value>=Sum(Fields!QTY_R5.Value*Fields!CUR_PRC.Value)</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <FontSize>8pt</FontSize>
+                                    <Format>=IIf(Parameters!INPUT_TYPE.Value=0, "N2",
+Switch(Fields!AMT_DEC.Value = 0,"#,0;-#,0"
+,Fields!AMT_DEC.Value = 1,"#,0.0;-#,0.0"
+,Fields!AMT_DEC.Value = 2,"#,0.00;-#,0.00"
+,Fields!AMT_DEC.Value = 3,"#,0.000;-#,0.000"
+,Fields!AMT_DEC.Value = 4,"#,0.0000;-#,0.0000"
+,Fields!AMT_DEC.Value = 5,"#,0.00000;-#,0.00000"
+))</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Right</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox134</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>LightGrey</Color>
+                              <Style>None</Style>
+                            </Border>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox135">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Label>@TRANSFER_IN_T</Label>
+                                  <Value>=Sum(Fields!QTY_R5.Value*Fields!CUR_PRC.Value)</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <FontSize>8pt</FontSize>
+                                    <Format>=IIf(Parameters!INPUT_TYPE.Value=0, "N2",
+Switch(Fields!AMT_DEC.Value = 0,"#,0;-#,0"
+,Fields!AMT_DEC.Value = 1,"#,0.0;-#,0.0"
+,Fields!AMT_DEC.Value = 2,"#,0.00;-#,0.00"
+,Fields!AMT_DEC.Value = 3,"#,0.000;-#,0.000"
+,Fields!AMT_DEC.Value = 4,"#,0.0000;-#,0.0000"
+,Fields!AMT_DEC.Value = 5,"#,0.00000;-#,0.00000"
+))</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Right</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox135</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>LightGrey</Color>
+                              <Style>None</Style>
+                            </Border>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox136">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Label>@TRASFER_OUT_T</Label>
+                                  <Value>=Sum(Fields!QTY_R7.Value*Fields!CUR_PRC.Value)</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <FontSize>8pt</FontSize>
+                                    <Format>=IIf(Parameters!INPUT_TYPE.Value=0, "N2",
+Switch(Fields!AMT_DEC.Value = 0,"#,0;-#,0"
+,Fields!AMT_DEC.Value = 1,"#,0.0;-#,0.0"
+,Fields!AMT_DEC.Value = 2,"#,0.00;-#,0.00"
+,Fields!AMT_DEC.Value = 3,"#,0.000;-#,0.000"
+,Fields!AMT_DEC.Value = 4,"#,0.0000;-#,0.0000"
+,Fields!AMT_DEC.Value = 5,"#,0.00000;-#,0.00000"
+))</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Right</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox136</rd:DefaultName>
+                          <Style>
+                            <Border>
+                              <Color>LightGrey</Color>
+                              <Style>None</Style>
+                            </Border>
+                            <PaddingLeft>2pt</PaddingLeft>
+                            <PaddingRight>2pt</PaddingRight>
+                            <PaddingTop>5pt</PaddingTop>
+                            <PaddingBottom>2pt</PaddingBottom>
+                          </Style>
+                        </Textbox>
+                      </CellContents>
+                    </TablixCell>
+                    <TablixCell>
+                      <CellContents>
+                        <Textbox Name="Textbox137">
+                          <CanGrow>true</CanGrow>
+                          <KeepTogether>true</KeepTogether>
+                          <Paragraphs>
+                            <Paragraph>
+                              <TextRuns>
+                                <TextRun>
+                                  <Label>@STOCK_NOW_T</Label>
+                                  <Value>=Sum(Fields!BEG_INV_AMT.Value 
+ + (Fields!QTY_R1.Value
+ + Fields!QTY_R2.Value
+ + Fields!QTY_R3.Value
+ - Fields!QTY_R4.Value
+ - Fields!QTY_R5.Value
+ - Fields!QTY_R6.Value
+ - Fields!QTY_R7.Value
+  )*Fields!CUR_PRC.Value)</Value>
+                                  <Style>
+                                    <FontFamily>MS Gothic</FontFamily>
+                                    <FontSize>8pt</FontSize>
+                                    <Format>=IIf(Parameters!INPUT_TYPE.Value=0, "N2",
+Switch(Fields!AMT_DEC.Value = 0,"#,0;-#,0"
+,Fields!AMT_DEC.Value = 1,"#,0.0;-#,0.0"
+,Fields!AMT_DEC.Value = 2,"#,0.00;-#,0.00"
+,Fields!AMT_DEC.Value = 3,"#,0.000;-#,0.000"
+,Fields!AMT_DEC.Value = 4,"#,0.0000;-#,0.0000"
+,Fields!AMT_DEC.Value = 5,"#,0.00000;-#,0.00000"
+))</Format>
+                                  </Style>
+                                </TextRun>
+                              </TextRuns>
+                              <Style>
+                                <TextAlign>Right</TextAlign>
+                              </Style>
+                            </Paragraph>
+                          </Paragraphs>
+                          <rd:DefaultName>Textbox137</rd:DefaultName>
                           <Style>
                             <Border>
                               <Color>LightGrey</Color>
@@ -1899,13 +2380,26 @@ Fields!QTY_R7.Value,
 Fields!QTY_R7.Value*Fields!CUR_PRC.Value)</Value>
                           </Variable>
                           <Variable Name="SUM_LINE">
-                            <Value />
+                            <Value>=Variables!LAST_MONTH.Value
++ Variables!STOCK_IN.Value
++ Variables!ADJUST_ADD.Value
++ Variables!TRANSFER_INPUT.Value
+- Variables!TRANSFER_OUT.Value
+- Variables!STOCK_OUT.Value
+- Variables!RETURN.Value
+- Variables!ADJUST_DECR.Value</Value>
                           </Variable>
                         </Variables>
                       </Group>
                       <TablixMembers>
                         <TablixMember />
                       </TablixMembers>
+                    </TablixMember>
+                    <TablixMember>
+                      <Visibility>
+                        <Hidden>=Parameters!INPUT_TYPE.Value=0</Hidden>
+                      </Visibility>
+                      <KeepWithGroup>Before</KeepWithGroup>
                     </TablixMember>
                   </TablixMembers>
                 </TablixMember>
@@ -1916,7 +2410,7 @@ Fields!QTY_R7.Value*Fields!CUR_PRC.Value)</Value>
             <DataSetName>InvRcvDisbList</DataSetName>
             <Top>0.2cm</Top>
             <Left>0.2cm</Left>
-            <Height>3.05cm</Height>
+            <Height>3.65cm</Height>
             <Width>28cm</Width>
             <Style>
               <Border>
@@ -1925,7 +2419,7 @@ Fields!QTY_R7.Value*Fields!CUR_PRC.Value)</Value>
             </Style>
           </Tablix>
         </ReportItems>
-        <Height>1.34687in</Height>
+        <Height>1.57604in</Height>
         <Style />
       </Body>
       <Width>11.25in</Width>
@@ -2321,7 +2815,7 @@ Fields!QTY_R7.Value*Fields!CUR_PRC.Value)</Value>
           <Value>=Year(Today())*100+Month(Today())</Value>
         </Values>
       </DefaultValue>
-      <Prompt>YYMM</Prompt>
+      <Prompt>対象年月</Prompt>
     </ReportParameter>
     <ReportParameter Name="ITEM_TYPE">
       <DataType>String</DataType>
