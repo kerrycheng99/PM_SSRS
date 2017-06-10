@@ -791,7 +791,6 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                                       </Style>
                                     </TextRun>
                                     <TextRun>
-                                      <Label>H_PROCESS</Label>
                                       <Value>=Fields!PROCESS_CD.Value</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
@@ -804,7 +803,6 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                                       </Style>
                                     </TextRun>
                                     <TextRun>
-                                      <Label>H_PROCESS</Label>
                                       <Value>=Fields!PROCESS_DESC.Value</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>

@@ -86,10 +86,13 @@ AND KEY02 = @KEY02</CommandText>
         </Field>
       </Fields>
     </DataSet>
-    <DataSet Name="WipStockTakingList">
+    <DataSet Name="WipStockTakingRptList">
       <Query>
         <DataSourceName>PMDS</DataSourceName>
         <QueryParameters>
+          <QueryParameter Name="@PRC_TYPE">
+            <Value>=Parameters!PRC_TYPE.Value</Value>
+          </QueryParameter>
           <QueryParameter Name="@PHYSICAL_CNT_YYMM">
             <Value>=Parameters!PHYSICAL_CNT_YYMM.Value</Value>
           </QueryParameter>
@@ -100,30 +103,76 @@ AND KEY02 = @KEY02</CommandText>
             <Value>=Parameters!PROCESS_CD.Value</Value>
           </QueryParameter>
         </QueryParameters>
-        <CommandText>--WipStockTakingList_現場棚卸リスト SQL
-SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
-   PH.PROCESS_CD ,     PRO.PROCESS_DESC ,   CONVERT(INT ,PH.PAGE_NO) AS PAGE_NO,
-   PH.LINE_NO  ,PH.ITEM_NO  ,I.ITEM_DESC  , PH.JOC_CD ,PH.LOT_NO,PH.INV_BAL ,
-   PH.ITEM_UMSR ,S.DATA_CHAR AS UMSR_NAME
- FROM PHISICAL_COUNT PH
- LEFT JOIN WORKSHOP_MASTER  WS  on  PH.WS_CD=WS.WS_CD
- LEFT JOIN PROCESS_MASTER   PRO on  PRO.PROCESS_CD=PH.PROCESS_CD
- LEFT JOIN ITEM_MASTER      I   on  I.ITEM_NO=PH.ITEM_NO
- LEFT JOIN SYSTEM_PARAMETER S   on  S.KEY01='ITEM_UMSR' AND S.KEY02=PH.ITEM_UMSR
+        <CommandText>--WipStockTakingRpt_現場棚卸報告書 SQL
+ SELECT  PH.WS_CD,                  WS.WS_DESC,                 PH.PROCESS_CD ,
+  PRO.PROCESS_DESC,                  convert(int,PH.PAGE_NO) as PAGE_NO,
+  PH.ITEM_NO,                        I.ITEM_DESC ,
+  PH.JOC_CD,                         PH.LOT_NO,                  PH.INV_BAL,
+  PH.ITEM_UMSR,                      S.DATA_CHAR AS UMSR_NAME ,  PH.PHYSICAL_CNT_QTY,
+  PH.DIFF_QTY ,                      PH.PHYSICAL_CNT_YYMM ,      PH.LINE_NO,
+  PH.INV_TYPE,
+ CASE @PRC_TYPE
+      WHEN 0 THEN ISNULL(P1.STD_PRC,0)     --//評価単価=「標準単価」の場合
+      WHEN 1 THEN ISNULL(P2.MA_PRC,0)      --//評価単価=月次移動平均単価の場合
+      WHEN 2 THEN ISNULL(P2.LAST_RCV_PRC,0)--//評価単価=最終仕入単価の場合
+ END  STD_PRC,
+ CASE @PRC_TYPE
+      WHEN 0 THEN PH.PHYSICAL_CNT_QTY*ISNULL(P1.STD_PRC,0)
+      WHEN 1 THEN PH.PHYSICAL_CNT_QTY*ISNULL(P2.MA_PRC,0)
+      WHEN 2 THEN PH.PHYSICAL_CNT_QTY*ISNULL(P2.LAST_RCV_PRC,0)
+ END  PHYSICAL_CNT_AMT,
+ CASE @PRC_TYPE
+      WHEN 0 THEN PH.DIFF_QTY*ISNULL(P1.STD_PRC,0)
+      WHEN 1 THEN PH.DIFF_QTY*ISNULL(P2.MA_PRC,0)
+      WHEN 2 THEN PH.DIFF_QTY*ISNULL(P2.LAST_RCV_PRC,0)
+ END  DIFF_AMT,
+ CASE @PRC_TYPE
+      WHEN 0 THEN ISNULL(P1.AMT_DEC,S1.AMT_DEC)
+      WHEN 1 THEN S1.AMT_DEC
+      WHEN 2 THEN S1.AMT_DEC
+ END  AMT_DEC,
+ CASE @PRC_TYPE
+      WHEN 0 THEN ISNULL(P1.PRC_DEC,S1.PRC_DEC)
+      WHEN 1 THEN S1.PRC_DEC
+      WHEN 2 THEN S1.PRC_DEC
+ END  PRC_DEC
+ FROM PHISICAL_COUNT  PH
+ LEFT JOIN WORKSHOP_MASTER WS ON WS.WS_CD=PH.WS_CD
+ LEFT JOIN PROCESS_MASTER PRO ON PRO.PROCESS_CD=PH.PROCESS_CD 
+ LEFT JOIN ITEM_MASTER  I     ON  PH.ITEM_NO=I.ITEM_NO
+ LEFT JOIN SYSTEM_PARAMETER S ON S.KEY01='ITEM_UMSR' AND S.KEY02=PH.ITEM_UMSR
+ LEFT JOIN ( --評価単価-標準単価
+            SELECT  SPM.ITEM_NO,          SPM.STD_PRC,         SPM.CURRENCY
+                   ,S.DATA_DEC PRC_DEC,S.DATA_DEC2 AMT_DEC
+            FROM STD_PRICE_MASTER SPM
+            LEFT JOIN  SYSTEM_PARAMETER S ON S.KEY01 = 'CURRENCY_CD' AND S.KEY02 = SPM.CURRENCY
+            WHERE BEG_EFF_DATE   &lt;=   @PHYSICAL_CNT_YYMM
+            AND   END_EFF_DATE   &gt;=   @PHYSICAL_CNT_YYMM
+           ) P1   ON PH.ITEM_NO = P1.ITEM_NO
+ LEFT JOIN ( --評価単価-月次移動平均単価、最終仕入単価
+            SELECT  WHS_CD,    ITEM_NO,     MA_PRC,    LAST_RCV_PRC
+            FROM MONTHLY_INV
+            WHERE YYMM    =   @PHYSICAL_CNT_YYMM
+            --AND  (WHS_CD   =   @WHS_CD or @WHS_CD = '')
+           ) P2   ON  PH.WHS_CD    = P2.WHS_CD
+                  AND PH.ITEM_NO   = P2.ITEM_NO
+ LEFT JOIN ( --基軸通貨 S #
+            SELECT ISNULL(DATA_DEC,0) PRC_DEC ,ISNULL(DATA_DEC2,0) AMT_DEC  
+            FROM SYSTEM_PARAMETER
+            WHERE KEY01     = 'CURRENCY_CD'
+            AND   DATA_INT  = 1
+           ) S1  ON 1=1
  WHERE 1=1
- AND PH.PHYSICAL_CNT_STATUS&lt;=20 
- AND PH.INV_TYPE=0 
- AND PH.INV_WIP_TYPE=1  
+ AND PH.INV_WIP_TYPE=1 
+ AND PH.INV_TYPE IN (0,4)
+ AND PH.PHYSICAL_CNT_STATUS=30
+ AND (PH.PHYSICAL_CNT_QTY!=0 OR PH.DIFF_QTY!=0)
  AND (PH.PHYSICAL_CNT_YYMM = @PHYSICAL_CNT_YYMM or @PHYSICAL_CNT_YYMM = 0)
  AND (PH.WS_CD = @WS_CD or @WS_CD = '')
  AND (PH.PROCESS_CD = @PROCESS_CD or @PROCESS_CD = '')
- ORDER BY PH.PHYSICAL_CNT_YYMM, PH.LINE_NO  </CommandText>
+ ORDER BY PH.PHYSICAL_CNT_YYMM, PH.WS_CD, PH.PAGE_NO, PH.LINE_NO</CommandText>
       </Query>
       <Fields>
-        <Field Name="PHYSICAL_CNT_YYMM">
-          <DataField>PHYSICAL_CNT_YYMM</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
-        </Field>
         <Field Name="WS_CD">
           <DataField>WS_CD</DataField>
           <rd:TypeName>System.String</rd:TypeName>
@@ -143,10 +192,6 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
         <Field Name="PAGE_NO">
           <DataField>PAGE_NO</DataField>
           <rd:TypeName>System.Int32</rd:TypeName>
-        </Field>
-        <Field Name="LINE_NO">
-          <DataField>LINE_NO</DataField>
-          <rd:TypeName>System.Decimal</rd:TypeName>
         </Field>
         <Field Name="ITEM_NO">
           <DataField>ITEM_NO</DataField>
@@ -176,6 +221,46 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
           <DataField>UMSR_NAME</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
+        <Field Name="PHYSICAL_CNT_QTY">
+          <DataField>PHYSICAL_CNT_QTY</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="DIFF_QTY">
+          <DataField>DIFF_QTY</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="PHYSICAL_CNT_YYMM">
+          <DataField>PHYSICAL_CNT_YYMM</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="LINE_NO">
+          <DataField>LINE_NO</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="INV_TYPE">
+          <DataField>INV_TYPE</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="STD_PRC">
+          <DataField>STD_PRC</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="PHYSICAL_CNT_AMT">
+          <DataField>PHYSICAL_CNT_AMT</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="DIFF_AMT">
+          <DataField>DIFF_AMT</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="AMT_DEC">
+          <DataField>AMT_DEC</DataField>
+          <rd:TypeName>System.Double</rd:TypeName>
+        </Field>
+        <Field Name="PRC_DEC">
+          <DataField>PRC_DEC</DataField>
+          <rd:TypeName>System.Double</rd:TypeName>
+        </Field>
       </Fields>
     </DataSet>
   </DataSets>
@@ -187,7 +272,7 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
             <TablixBody>
               <TablixColumns>
                 <TablixColumn>
-                  <Width>19.14839cm</Width>
+                  <Width>27.87131cm</Width>
                 </TablixColumn>
               </TablixColumns>
               <TablixRows>
@@ -362,106 +447,6 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                                 <PaddingBottom>2pt</PaddingBottom>
                               </Style>
                             </Textbox>
-                            <Textbox Name="Textbox110">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>H_PAGE_NO</Label>
-                                      <Value>=Code.GetLabel(Parameters!LABELS,"Rpt_PAGE_NO1")</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>0.1cm</Top>
-                              <Left>8.66958cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>2cm</Width>
-                              <ZIndex>5</ZIndex>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                            <Textbox Name="Textbox111">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Value>=Fields!PAGE_NO.Value</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style>
-                                    <TextAlign>Left</TextAlign>
-                                  </Style>
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>0.1cm</Top>
-                              <Left>10.77542cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>2.74083cm</Width>
-                              <ZIndex>6</ZIndex>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                            <Textbox Name="Textbox117">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Label>H_LINE_NO</Label>
-                                      <Value>=Code.GetLabel(Parameters!LABELS,"Rpt_LINE_NO")</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>1.565cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.5cm</Width>
-                              <ZIndex>7</ZIndex>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
                             <Textbox Name="Textbox119">
                               <CanGrow>true</CanGrow>
                               <KeepTogether>true</KeepTogether>
@@ -481,10 +466,10 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.565cm</Top>
-                              <Left>1.75875cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>8cm</Width>
-                              <ZIndex>8</ZIndex>
+                              <Width>6.9533cm</Width>
+                              <ZIndex>5</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -514,10 +499,10 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.565cm</Top>
-                              <Left>13.07625cm</Left>
+                              <Left>13.5132cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>3.3cm</Width>
-                              <ZIndex>9</ZIndex>
+                              <Width>3cm</Width>
+                              <ZIndex>6</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -547,49 +532,14 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.565cm</Top>
-                              <Left>9.9175cm</Left>
+                              <Left>7.2066cm</Left>
                               <Height>0.5cm</Height>
                               <Width>3cm</Width>
-                              <ZIndex>10</ZIndex>
+                              <ZIndex>7</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
                                 </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                            <Textbox Name="Textbox122">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Value />
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>2.165cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.5cm</Width>
-                              <ZIndex>11</ZIndex>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <BottomBorder>
-                                  <Style>Solid</Style>
-                                </BottomBorder>
                                 <PaddingLeft>2pt</PaddingLeft>
                                 <PaddingRight>2pt</PaddingRight>
                                 <PaddingTop>2pt</PaddingTop>
@@ -615,10 +565,10 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>2.165cm</Top>
-                              <Left>1.75875cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>8cm</Width>
-                              <ZIndex>12</ZIndex>
+                              <Width>6.9533cm</Width>
+                              <ZIndex>8</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -650,10 +600,10 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>2.165cm</Top>
-                              <Left>13.07625cm</Left>
+                              <Left>13.5132cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>3.3cm</Width>
-                              <ZIndex>13</ZIndex>
+                              <Width>3cm</Width>
+                              <ZIndex>9</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -685,18 +635,15 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>2.165cm</Top>
-                              <Left>9.9175cm</Left>
+                              <Top>1.565cm</Top>
+                              <Left>10.3599cm</Left>
                               <Height>0.5cm</Height>
                               <Width>3cm</Width>
-                              <ZIndex>14</ZIndex>
+                              <ZIndex>10</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
                                 </Border>
-                                <BottomBorder>
-                                  <Style>Solid</Style>
-                                </BottomBorder>
                                 <PaddingLeft>2pt</PaddingLeft>
                                 <PaddingRight>2pt</PaddingRight>
                                 <PaddingTop>2pt</PaddingTop>
@@ -710,8 +657,8 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Label>H_NOTE</Label>
-                                      <Value>=Code.GetLabel(Parameters!LABELS,"Rpt_NOTE")</Value>
+                                      <Label>H_DIFF_QTY</Label>
+                                      <Value>=Code.GetLabel(Parameters!LABELS,"Rpt_DIFF_QTY")</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                       </Style>
@@ -722,10 +669,10 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>1.565cm</Top>
-                              <Left>16.535cm</Left>
+                              <Left>22.27309cm</Left>
                               <Height>0.5cm</Height>
                               <Width>2.5cm</Width>
-                              <ZIndex>15</ZIndex>
+                              <ZIndex>11</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -754,10 +701,10 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>2.165cm</Top>
-                              <Left>16.535cm</Left>
+                              <Left>22.27309cm</Left>
                               <Height>0.5cm</Height>
                               <Width>2.5cm</Width>
-                              <ZIndex>16</ZIndex>
+                              <ZIndex>12</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -771,7 +718,351 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                                 <PaddingBottom>2pt</PaddingBottom>
                               </Style>
                             </Textbox>
+                            <Textbox Name="Textbox115">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Label>H_PAGE_NO</Label>
+                                      <Value>=Code.GetLabel(Parameters!LABELS,"Rpt_PAGE_NO1")</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.73528cm</Top>
+                              <Left>17.38899cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>2.5cm</Width>
+                              <ZIndex>13</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox131">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>2.165cm</Top>
+                              <Left>7.2066cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>3cm</Width>
+                              <ZIndex>14</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <BottomBorder>
+                                  <Style>Solid</Style>
+                                </BottomBorder>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox132">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>2.165cm</Top>
+                              <Left>10.3599cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>3cm</Width>
+                              <ZIndex>15</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <BottomBorder>
+                                  <Style>Solid</Style>
+                                </BottomBorder>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox133">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Label>H_DIFF_AMT</Label>
+                                      <Value>=Code.GetLabel(Parameters!LABELS,"Rpt_DIFFAMOUNT")</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>1.565cm</Top>
+                              <Left>24.92639cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>2.8cm</Width>
+                              <ZIndex>16</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox134">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>2.165cm</Top>
+                              <Left>24.92639cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>2.8cm</Width>
+                              <ZIndex>17</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <BottomBorder>
+                                  <Style>Solid</Style>
+                                </BottomBorder>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox116">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Fields!PAGE_NO.Value</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.73528cm</Top>
+                              <Left>20.2225cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>2.5cm</Width>
+                              <ZIndex>18</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox117">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Label>H_UNIT_PRC</Label>
+                                      <Value>=Code.GetLabel(Parameters!LABELS,"Rpt_UNIT_PRC")</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>1.565cm</Top>
+                              <Left>16.66649cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>2.5cm</Width>
+                              <ZIndex>19</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
                             <Textbox Name="Textbox118">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Label>H_AMOUNT</Label>
+                                      <Value>=Code.GetLabel(Parameters!LABELS,"Rpt_AMOUNT")</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>1.565cm</Top>
+                              <Left>19.31979cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>2.8cm</Width>
+                              <ZIndex>20</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox122">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>2.165cm</Top>
+                              <Left>16.66649cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>2.5cm</Width>
+                              <ZIndex>21</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <BottomBorder>
+                                  <Style>Solid</Style>
+                                </BottomBorder>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox123">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Label>H_ITEM_DESC</Label>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>2.165cm</Top>
+                              <Left>19.31979cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>2.8cm</Width>
+                              <ZIndex>22</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <BottomBorder>
+                                  <Style>Solid</Style>
+                                </BottomBorder>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox135">
                               <CanGrow>true</CanGrow>
                               <KeepTogether>true</KeepTogether>
                               <Paragraphs>
@@ -813,13 +1104,13 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>0.7cm</Top>
-                              <Left>8.66958cm</Left>
+                              <Top>0.73528cm</Top>
+                              <Left>8.54021cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>8.67759cm</Width>
-                              <ZIndex>17</ZIndex>
+                              <Width>8.43947cm</Width>
+                              <ZIndex>23</ZIndex>
                               <Visibility>
-                                <Hidden>=LTrim(RTrim(Fields!PROCESS_CD.Value))=""</Hidden>
+                                <Hidden>=LTrim(RTrim(Fields!PROCESS_CD.Value)) = ""</Hidden>
                               </Visibility>
                               <Style>
                                 <Border>
@@ -845,7 +1136,7 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                   </TablixCells>
                 </TablixRow>
                 <TablixRow>
-                  <Height>2.8cm</Height>
+                  <Height>1.3cm</Height>
                   <TablixCells>
                     <TablixCell>
                       <CellContents>
@@ -869,9 +1160,9 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.1cm</Top>
-                              <Left>1.8cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>7.87175cm</Width>
+                              <Width>6.9533cm</Width>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -900,9 +1191,9 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.7cm</Top>
-                              <Left>1.8cm</Left>
+                              <Left>0.1cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>7.87175cm</Width>
+                              <Width>13.2599cm</Width>
                               <ZIndex>1</ZIndex>
                               <Style>
                                 <Border>
@@ -921,22 +1212,23 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Label>@INV_BAL</Label>
-                                      <Value>=IIf(Parameters!IS_ISSUE_INV_BAL.Value=0, 0, Fields!INV_BAL.Value)</Value>
+                                      <Value>=Fields!PHYSICAL_CNT_QTY.Value</Value>
                                       <Style>
                                         <FontFamily>MS Gothic</FontFamily>
                                         <Format>#,0.00;-#,0.00</Format>
                                       </Style>
                                     </TextRun>
                                   </TextRuns>
-                                  <Style />
+                                  <Style>
+                                    <TextAlign>Right</TextAlign>
+                                  </Style>
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.1cm</Top>
-                              <Left>13.07625cm</Left>
+                              <Left>13.5132cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>2.47175cm</Width>
+                              <Width>1.94931cm</Width>
                               <ZIndex>2</ZIndex>
                               <Style>
                                 <Border>
@@ -965,10 +1257,10 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>0.7cm</Top>
-                              <Left>9.906cm</Left>
+                              <Top>0.1cm</Top>
+                              <Left>10.3599cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>2.92cm</Width>
+                              <Width>3cm</Width>
                               <ZIndex>3</ZIndex>
                               <Style>
                                 <Border>
@@ -998,45 +1290,10 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.1cm</Top>
-                              <Left>9.906cm</Left>
+                              <Left>7.2066cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>2.92cm</Width>
+                              <Width>3cm</Width>
                               <ZIndex>4</ZIndex>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                            <Textbox Name="Textbox87">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Value>=Fields!LINE_NO.Value</Value>
-                                      <Style>
-                                        <FontFamily>MS Gothic</FontFamily>
-                                        <Format>##0</Format>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style>
-                                    <TextAlign>Center</TextAlign>
-                                  </Style>
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox65</rd:DefaultName>
-                              <Top>0.1cm</Top>
-                              <Left>0.1cm</Left>
-                              <Height>0.5cm</Height>
-                              <Width>1.5cm</Width>
-                              <ZIndex>5</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -1065,9 +1322,44 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                               </Paragraphs>
                               <rd:DefaultName>Textbox65</rd:DefaultName>
                               <Top>0.1cm</Top>
-                              <Left>15.7cm</Left>
+                              <Left>15.6025cm</Left>
                               <Height>0.5cm</Height>
-                              <Width>0.65cm</Width>
+                              <Width>0.91069cm</Width>
+                              <ZIndex>5</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox80">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Fields!DIFF_QTY.Value</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                        <Format>#,0.00;-#,0.00</Format>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Right</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.1cm</Top>
+                              <Left>22.27309cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>2.47691cm</Width>
                               <ZIndex>6</ZIndex>
                               <Style>
                                 <Border>
@@ -1079,33 +1371,476 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                                 <PaddingBottom>2pt</PaddingBottom>
                               </Style>
                             </Textbox>
-                            <Image Name="ImgQRCD">
-                              <Source>Database</Source>
-                              <Value>=Code.GetQRCode("H01," 
-&amp; Fields!WS_CD.Value &amp; ","
-&amp; Cstr(Fields!PAGE_NO.Value) &amp; ","
-&amp; Cstr(Fields!LINE_NO.Value) &amp; ","
-&amp; Fields!ITEM_NO.Value &amp; ","
-&amp; Fields!JOC_CD.Value &amp; ","
-&amp; Fields!LOT_NO.Value &amp; ","
-&amp; IIf(Parameters!IS_ISSUE_INV_BAL.Value=0, "0.00", Cstr(Fields!INV_BAL.Value)) 
-)</Value>
-                              <MIMEType>image/bmp</MIMEType>
-                              <Top>1.3cm</Top>
-                              <Left>1.8cm</Left>
-                              <Height>1.3cm</Height>
-                              <Width>1.3cm</Width>
+                            <Textbox Name="Textbox82">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Fields!DIFF_AMT.Value</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                        <Format>=Switch(Fields!AMT_DEC.Value = 0,"#,0;-#,0"
+,Fields!AMT_DEC.Value = 1,"#,0.0;-#,0.0"
+,Fields!AMT_DEC.Value = 2,"#,0.00;-#,0.00"
+,Fields!AMT_DEC.Value = 3,"#,0.000;-#,0.000"
+,Fields!AMT_DEC.Value = 4,"#,0.0000;-#,0.0000"
+,Fields!AMT_DEC.Value = 5,"#,0.00000;-#,0.00000"
+)</Format>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Right</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.1cm</Top>
+                              <Left>24.92639cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>2.8cm</Width>
                               <ZIndex>7</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
                                 </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
                               </Style>
-                              <cl:ComponentMetadata />
-                            </Image>
+                            </Textbox>
+                            <Textbox Name="Textbox84">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Fields!STD_PRC.Value</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                        <Format>=Switch(Fields!PRC_DEC.Value = 0,"#,0;-#,0"
+,Fields!PRC_DEC.Value = 1,"#,0.0;-#,0.0"
+,Fields!PRC_DEC.Value = 2,"#,0.00;-#,0.00"
+,Fields!PRC_DEC.Value = 3,"#,0.000;-#,0.000"
+,Fields!PRC_DEC.Value = 4,"#,0.0000;-#,0.0000"
+,Fields!PRC_DEC.Value = 5,"#,0.00000;-#,0.00000"
+)</Format>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Right</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.1cm</Top>
+                              <Left>16.68958cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>2.47691cm</Width>
+                              <ZIndex>8</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox86">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Fields!PHYSICAL_CNT_AMT.Value</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                        <Format>=Switch(Fields!AMT_DEC.Value = 0,"#,0;-#,0"
+,Fields!AMT_DEC.Value = 1,"#,0.0;-#,0.0"
+,Fields!AMT_DEC.Value = 2,"#,0.00;-#,0.00"
+,Fields!AMT_DEC.Value = 3,"#,0.000;-#,0.000"
+,Fields!AMT_DEC.Value = 4,"#,0.0000;-#,0.0000"
+,Fields!AMT_DEC.Value = 5,"#,0.00000;-#,0.00000"
+)</Format>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Right</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.1cm</Top>
+                              <Left>19.3076cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>2.7891cm</Width>
+                              <ZIndex>9</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
                           </ReportItems>
                           <KeepTogether>true</KeepTogether>
                           <ZIndex>2</ZIndex>
+                          <Style>
+                            <Border>
+                              <Style>None</Style>
+                            </Border>
+                          </Style>
+                        </Rectangle>
+                      </CellContents>
+                    </TablixCell>
+                  </TablixCells>
+                </TablixRow>
+                <TablixRow>
+                  <Height>1.4cm</Height>
+                  <TablixCells>
+                    <TablixCell>
+                      <CellContents>
+                        <Rectangle Name="Rectangle4">
+                          <ReportItems>
+                            <Textbox Name="Textbox85">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Sum(Fields!DIFF_AMT.Value)</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Format>=Switch(Fields!AMT_DEC.Value = 0,"#,0;-#,0"
+,Fields!AMT_DEC.Value = 1,"#,0.0;-#,0.0"
+,Fields!AMT_DEC.Value = 2,"#,0.00;-#,0.00"
+,Fields!AMT_DEC.Value = 3,"#,0.000;-#,0.000"
+,Fields!AMT_DEC.Value = 4,"#,0.0000;-#,0.0000"
+,Fields!AMT_DEC.Value = 5,"#,0.00000;-#,0.00000"
+)</Format>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Right</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.7cm</Top>
+                              <Left>19.2858cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>2.8cm</Width>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox87">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Sum(Fields!PHYSICAL_CNT_AMT.Value)</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Format>=Switch(Fields!AMT_DEC.Value = 0,"#,0;-#,0"
+,Fields!AMT_DEC.Value = 1,"#,0.0;-#,0.0"
+,Fields!AMT_DEC.Value = 2,"#,0.00;-#,0.00"
+,Fields!AMT_DEC.Value = 3,"#,0.000;-#,0.000"
+,Fields!AMT_DEC.Value = 4,"#,0.0000;-#,0.0000"
+,Fields!AMT_DEC.Value = 5,"#,0.00000;-#,0.00000"
+)</Format>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Right</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.1cm</Top>
+                              <Left>19.2967cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>2.7891cm</Width>
+                              <ZIndex>1</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox90">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Label>H_IN_WHS_AMOUNT</Label>
+                                      <Value>=Code.GetLabel(Parameters!LABELS,"Rpt_IN_WHS_AMOUNT")</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.1cm</Top>
+                              <Left>15.6025cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>3.56399cm</Width>
+                              <ZIndex>2</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox91">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Label>H_WHS_DIFFAMOUNT</Label>
+                                      <Value>=Code.GetLabel(Parameters!LABELS,"Rpt_WHS_DIFFAMOUNT")</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.7cm</Top>
+                              <Left>15.5807cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>3.56399cm</Width>
+                              <ZIndex>3</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </ReportItems>
+                          <KeepTogether>true</KeepTogether>
+                          <Style>
+                            <Border>
+                              <Style>None</Style>
+                            </Border>
+                          </Style>
+                        </Rectangle>
+                      </CellContents>
+                    </TablixCell>
+                  </TablixCells>
+                </TablixRow>
+                <TablixRow>
+                  <Height>1.4cm</Height>
+                  <TablixCells>
+                    <TablixCell>
+                      <CellContents>
+                        <Rectangle Name="Rectangle5">
+                          <ReportItems>
+                            <Textbox Name="Textbox88">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Sum(Fields!PHYSICAL_CNT_AMT.Value)</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Format>=Switch(Fields!AMT_DEC.Value = 0,"#,0;-#,0"
+,Fields!AMT_DEC.Value = 1,"#,0.0;-#,0.0"
+,Fields!AMT_DEC.Value = 2,"#,0.00;-#,0.00"
+,Fields!AMT_DEC.Value = 3,"#,0.000;-#,0.000"
+,Fields!AMT_DEC.Value = 4,"#,0.0000;-#,0.0000"
+,Fields!AMT_DEC.Value = 5,"#,0.00000;-#,0.00000"
+)</Format>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Right</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.1cm</Top>
+                              <Left>19.2858cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>2.7891cm</Width>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox89">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Sum(Fields!DIFF_AMT.Value)</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Format>=Switch(Fields!AMT_DEC.Value = 0,"#,0;-#,0"
+,Fields!AMT_DEC.Value = 1,"#,0.0;-#,0.0"
+,Fields!AMT_DEC.Value = 2,"#,0.00;-#,0.00"
+,Fields!AMT_DEC.Value = 3,"#,0.000;-#,0.000"
+,Fields!AMT_DEC.Value = 4,"#,0.0000;-#,0.0000"
+,Fields!AMT_DEC.Value = 5,"#,0.00000;-#,0.00000"
+)</Format>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Right</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.7cm</Top>
+                              <Left>19.2749cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>2.8cm</Width>
+                              <ZIndex>1</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox92">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Label>H_A_WHS_AMOUNT</Label>
+                                      <Value>=Code.GetLabel(Parameters!LABELS,"Rpt_A_WHS_AMOUNT")</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.1cm</Top>
+                              <Left>15.6025cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>3.56399cm</Width>
+                              <ZIndex>2</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox93">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Label>H_A_DIFFAMOUNT</Label>
+                                      <Value>=Code.GetLabel(Parameters!LABELS,"Rpt_A_DIFFAMOUNT")</Value>
+                                      <Style>
+                                        <FontFamily>MS Gothic</FontFamily>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox65</rd:DefaultName>
+                              <Top>0.70583cm</Top>
+                              <Left>15.6025cm</Left>
+                              <Height>0.5cm</Height>
+                              <Width>3.56399cm</Width>
+                              <ZIndex>3</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </ReportItems>
+                          <KeepTogether>true</KeepTogether>
                           <Style>
                             <Border>
                               <Style>None</Style>
@@ -1126,9 +1861,9 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
             <TablixRowHierarchy>
               <TablixMembers>
                 <TablixMember>
-                  <Group Name="YYMM_WS_CD_PAGE_NO">
+                  <Group Name="YYMM">
                     <GroupExpressions>
-                      <GroupExpression>=Cstr(Fields!PHYSICAL_CNT_YYMM.Value) + Fields!WS_CD.Value + Cstr(Fields!PAGE_NO.Value)</GroupExpression>
+                      <GroupExpression>=Fields!PHYSICAL_CNT_YYMM.Value</GroupExpression>
                     </GroupExpressions>
                     <PageBreak>
                       <BreakLocation>Between</BreakLocation>
@@ -1138,12 +1873,6 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                     <SortExpression>
                       <Value>=Fields!PHYSICAL_CNT_YYMM.Value</Value>
                     </SortExpression>
-                    <SortExpression>
-                      <Value>=Fields!WS_CD.Value</Value>
-                    </SortExpression>
-                    <SortExpression>
-                      <Value>=Fields!PAGE_NO.Value</Value>
-                    </SortExpression>
                   </SortExpressions>
                   <TablixMembers>
                     <TablixMember>
@@ -1151,17 +1880,51 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
                       <RepeatOnNewPage>true</RepeatOnNewPage>
                     </TablixMember>
                     <TablixMember>
-                      <Group Name="详细信息" />
+                      <Group Name="WS_CD">
+                        <GroupExpressions>
+                          <GroupExpression>=Fields!WS_CD.Value</GroupExpression>
+                        </GroupExpressions>
+                      </Group>
+                      <SortExpressions>
+                        <SortExpression>
+                          <Value>=Fields!WS_CD.Value</Value>
+                        </SortExpression>
+                      </SortExpressions>
+                      <TablixMembers>
+                        <TablixMember>
+                          <Group Name="PAGE_NO">
+                            <GroupExpressions>
+                              <GroupExpression>=Fields!PAGE_NO.Value</GroupExpression>
+                            </GroupExpressions>
+                          </Group>
+                          <SortExpressions>
+                            <SortExpression>
+                              <Value>=Fields!PAGE_NO.Value</Value>
+                            </SortExpression>
+                          </SortExpressions>
+                          <TablixMembers>
+                            <TablixMember>
+                              <Group Name="详细信息" />
+                            </TablixMember>
+                          </TablixMembers>
+                        </TablixMember>
+                      </TablixMembers>
+                    </TablixMember>
+                    <TablixMember>
+                      <KeepWithGroup>Before</KeepWithGroup>
                     </TablixMember>
                   </TablixMembers>
                 </TablixMember>
+                <TablixMember>
+                  <KeepWithGroup>Before</KeepWithGroup>
+                </TablixMember>
               </TablixMembers>
             </TablixRowHierarchy>
-            <DataSetName>WipStockTakingList</DataSetName>
+            <DataSetName>WipStockTakingRptList</DataSetName>
             <Top>0.09243cm</Top>
             <Left>0.34078cm</Left>
-            <Height>5.6cm</Height>
-            <Width>19.14839cm</Width>
+            <Height>6.9cm</Height>
+            <Width>27.87131cm</Width>
             <Style>
               <Border>
                 <Style>None</Style>
@@ -1169,10 +1932,10 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
             </Style>
           </Tablix>
         </ReportItems>
-        <Height>2.27966in</Height>
+        <Height>2.87342in</Height>
         <Style />
       </Body>
-      <Width>19.63959cm</Width>
+      <Width>11.20596in</Width>
       <Page>
         <PageHeader>
           <Height>1.5cm</Height>
@@ -1201,7 +1964,7 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
               </Paragraphs>
               <rd:DefaultName>ExecutionTime</rd:DefaultName>
               <Top>0.30522cm</Top>
-              <Left>16.36664cm</Left>
+              <Left>24.93914cm</Left>
               <Height>0.4cm</Height>
               <Width>3.27295cm</Width>
               <Style>
@@ -1236,7 +1999,7 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
               </Paragraphs>
               <rd:DefaultName>ExecutionTime</rd:DefaultName>
               <Top>0.30522cm</Top>
-              <Left>14.23203cm</Left>
+              <Left>22.80453cm</Left>
               <Height>0.4cm</Height>
               <Width>1.95822cm</Width>
               <ZIndex>1</ZIndex>
@@ -1274,7 +2037,7 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
               <Top>0.26709cm</Top>
               <Left>5.47369cm</Left>
               <Height>0.94396cm</Height>
-              <Width>8.72306cm</Width>
+              <Width>17.15445cm</Width>
               <ZIndex>2</ZIndex>
               <Style>
                 <Border>
@@ -1308,7 +2071,7 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
               </Paragraphs>
               <rd:DefaultName>ExecutionTime</rd:DefaultName>
               <Top>0.88161cm</Top>
-              <Left>14.23203cm</Left>
+              <Left>22.80453cm</Left>
               <Height>0.4cm</Height>
               <Width>1.95822cm</Width>
               <ZIndex>3</ZIndex>
@@ -1343,7 +2106,7 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
               </Paragraphs>
               <rd:DefaultName>PageNumber</rd:DefaultName>
               <Top>0.88161cm</Top>
-              <Left>16.36664cm</Left>
+              <Left>24.93914cm</Left>
               <Height>0.4cm</Height>
               <Width>1.90028cm</Width>
               <ZIndex>4</ZIndex>
@@ -1373,7 +2136,7 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
               <Top>0.09964cm</Top>
               <Left>0.34078cm</Left>
               <Height>0cm</Height>
-              <Width>19.29881cm</Width>
+              <Width>27.87131cm</Width>
               <Visibility>
                 <Hidden>true</Hidden>
               </Visibility>
@@ -1405,8 +2168,8 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
               </Paragraphs>
               <rd:DefaultName>RptNo</rd:DefaultName>
               <Top>0.24075cm</Top>
-              <Left>11.4632cm</Left>
-              <Height>0.6cm</Height>
+              <Left>20.0357cm</Left>
+              <Height>0.5cm</Height>
               <Width>4cm</Width>
               <ZIndex>1</ZIndex>
               <Style>
@@ -1438,8 +2201,8 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
               </Paragraphs>
               <rd:DefaultName>CreatName</rd:DefaultName>
               <Top>0.24075cm</Top>
-              <Left>15.63959cm</Left>
-              <Height>0.6cm</Height>
+              <Left>24.21209cm</Left>
+              <Height>0.5cm</Height>
               <Width>4cm</Width>
               <ZIndex>2</ZIndex>
               <Style>
@@ -1459,8 +2222,8 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
             </Border>
           </Style>
         </PageFooter>
-        <PageHeight>29.7cm</PageHeight>
-        <PageWidth>21cm</PageWidth>
+        <PageHeight>21cm</PageHeight>
+        <PageWidth>29.7cm</PageWidth>
         <LeftMargin>0.5cm</LeftMargin>
         <RightMargin>0.5cm</RightMargin>
         <TopMargin>0.5cm</TopMargin>
@@ -1492,7 +2255,7 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
       <Nullable>true</Nullable>
       <DefaultValue>
         <Values>
-          <Value>WipStockTakingList_frmMain</Value>
+          <Value>WipStockTakingRpt_frmMain</Value>
         </Values>
       </DefaultValue>
       <AllowBlank>true</AllowBlank>
@@ -1504,7 +2267,7 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
       <Nullable>true</Nullable>
       <DefaultValue>
         <Values>
-          <Value>WipStockTakingList</Value>
+          <Value>WipStockTakingRpt</Value>
         </Values>
       </DefaultValue>
       <AllowBlank>true</AllowBlank>
@@ -1530,27 +2293,6 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
       </ValidValues>
       <MultiValue>true</MultiValue>
     </ReportParameter>
-    <ReportParameter Name="IS_ISSUE_INV_BAL">
-      <DataType>Boolean</DataType>
-      <DefaultValue>
-        <Values>
-          <Value>false</Value>
-        </Values>
-      </DefaultValue>
-      <Prompt>理論値発行: </Prompt>
-      <ValidValues>
-        <ParameterValues>
-          <ParameterValue>
-            <Value>false</Value>
-            <Label>0:発行しない</Label>
-          </ParameterValue>
-          <ParameterValue>
-            <Value>true</Value>
-            <Label>1:発行する必要</Label>
-          </ParameterValue>
-        </ParameterValues>
-      </ValidValues>
-    </ReportParameter>
     <ReportParameter Name="PHYSICAL_CNT_YYMM">
       <DataType>Integer</DataType>
       <DefaultValue>
@@ -1570,6 +2312,31 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
       <AllowBlank>true</AllowBlank>
       <Prompt>作業区コード</Prompt>
     </ReportParameter>
+    <ReportParameter Name="PRC_TYPE">
+      <DataType>Integer</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>0</Value>
+        </Values>
+      </DefaultValue>
+      <Prompt>評価単価:</Prompt>
+      <ValidValues>
+        <ParameterValues>
+          <ParameterValue>
+            <Value>0</Value>
+            <Label>0:標準単価</Label>
+          </ParameterValue>
+          <ParameterValue>
+            <Value>1</Value>
+            <Label>1:月次移動平均単価</Label>
+          </ParameterValue>
+          <ParameterValue>
+            <Value>2</Value>
+            <Label>2:最終仕入単価</Label>
+          </ParameterValue>
+        </ParameterValues>
+      </ValidValues>
+    </ReportParameter>
     <ReportParameter Name="PROCESS_CD">
       <DataType>String</DataType>
       <DefaultValue>
@@ -1578,7 +2345,7 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
         </Values>
       </DefaultValue>
       <AllowBlank>true</AllowBlank>
-      <Prompt>PROCESS CODE</Prompt>
+      <Prompt>PROCESS CD</Prompt>
       <Hidden>true</Hidden>
     </ReportParameter>
   </ReportParameters>
@@ -1588,16 +2355,7 @@ SELECT  PH.PHYSICAL_CNT_YYMM ,    PH.WS_CD  ,    WS.WS_DESC ,
        If (P.Value(i) = Label) Then Return P.Label(i) 
     Next i
     Return Label
-End Function
-
-Public Function GetQRCode(ByVal qrStr As String) as Byte()
-    'ThoughtWorks.QRCode 
-    'Content, QRCodeScale, QRCodeVersion
-     Return CreateQRCode.ReturnByteArray(qrStr, 1, 6)
 End Function</Code>
-  <CodeModules>
-    <CodeModule>QRCodeLibrary, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ac05b3fc400188b1</CodeModule>
-  </CodeModules>
   <rd:ReportUnitType>Cm</rd:ReportUnitType>
   <rd:ReportID>22f5ca9f-22c4-47d7-9be9-dfdfdcee88a0</rd:ReportID>
 </Report>

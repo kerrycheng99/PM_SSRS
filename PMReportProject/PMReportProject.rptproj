@@ -54,8 +54,32 @@
       <FullPath>InvShortList.rdl</FullPath>
     </ProjectItem>
     <ProjectItem>
+      <Name>InvStockTakingDiffRpt.rdl</Name>
+      <FullPath>InvStockTakingDiffRpt.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>InvStockTakingList.rdl</Name>
+      <FullPath>InvStockTakingList.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>InvStockTakingList_BCD.rdl</Name>
+      <FullPath>InvStockTakingList_BCD.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>InvStockTakingList_QRCD.rdl</Name>
+      <FullPath>InvStockTakingList_QRCD.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
       <Name>InvWhsTransferList.rdl</Name>
       <FullPath>InvWhsTransferList.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>InvWhsTransferList_BCD.rdl</Name>
+      <FullPath>InvWhsTransferList_BCD.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>InvWhsTransferList_QRCD.rdl</Name>
+      <FullPath>InvWhsTransferList_QRCD.rdl</FullPath>
     </ProjectItem>
     <ProjectItem>
       <Name>MfgJOProcessSheetPrt.rdl</Name>
@@ -178,26 +202,6 @@
       <FullPath>PurSupplySheetPrt2.rdl</FullPath>
     </ProjectItem>
     <ProjectItem>
-      <Name>InvWhsTransferList_BCD.rdl</Name>
-      <FullPath>InvWhsTransferList_BCD.rdl</FullPath>
-    </ProjectItem>
-    <ProjectItem>
-      <Name>InvWhsTransferList_QRCD.rdl</Name>
-      <FullPath>InvWhsTransferList_QRCD.rdl</FullPath>
-    </ProjectItem>
-    <ProjectItem>
-      <Name>InvStockTakingList.rdl</Name>
-      <FullPath>InvStockTakingList.rdl</FullPath>
-    </ProjectItem>
-    <ProjectItem>
-      <Name>InvStockTakingList_BCD.rdl</Name>
-      <FullPath>InvStockTakingList_BCD.rdl</FullPath>
-    </ProjectItem>
-    <ProjectItem>
-      <Name>InvStockTakingList_QRCD.rdl</Name>
-      <FullPath>InvStockTakingList_QRCD.rdl</FullPath>
-    </ProjectItem>
-    <ProjectItem>
       <Name>WipStockTakingList.rdl</Name>
       <FullPath>WipStockTakingList.rdl</FullPath>
     </ProjectItem>
@@ -208,6 +212,18 @@
     <ProjectItem>
       <Name>WipStockTakingList_QRCD.rdl</Name>
       <FullPath>WipStockTakingList_QRCD.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>WipStockTakingDiffRpt.rdl</Name>
+      <FullPath>WipStockTakingDiffRpt.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>InvStockTakingRpt.rdl</Name>
+      <FullPath>InvStockTakingRpt.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>WipStockTakingRpt.rdl</Name>
+      <FullPath>WipStockTakingRpt.rdl</FullPath>
     </ProjectItem>
   </Reports>
   <Configurations>
