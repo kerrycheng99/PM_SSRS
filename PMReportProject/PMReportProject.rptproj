@@ -10,6 +10,18 @@
   <DataSets />
   <Reports>
     <ProjectItem>
+      <Name>CostActualShow1.rdl</Name>
+      <FullPath>CostActualShow1.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>CostActualShow2.rdl</Name>
+      <FullPath>CostActualShow2.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>CostStandardRpt.rdl</Name>
+      <FullPath>CostStandardRpt.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
       <Name>InvAdjListI.rdl</Name>
       <FullPath>InvAdjListI.rdl</FullPath>
     </ProjectItem>
@@ -68,6 +80,10 @@
     <ProjectItem>
       <Name>InvStockTakingList_QRCD.rdl</Name>
       <FullPath>InvStockTakingList_QRCD.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>InvStockTakingRpt.rdl</Name>
+      <FullPath>InvStockTakingRpt.rdl</FullPath>
     </ProjectItem>
     <ProjectItem>
       <Name>InvWhsTransferList.rdl</Name>
@@ -166,6 +182,10 @@
       <FullPath>PurFcstInq.rdl</FullPath>
     </ProjectItem>
     <ProjectItem>
+      <Name>PurIdentificationTag.rdl</Name>
+      <FullPath>PurIdentificationTag.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
       <Name>PurInspProofRpt.rdl</Name>
       <FullPath>PurInspProofRpt.rdl</FullPath>
     </ProjectItem>
@@ -202,6 +222,10 @@
       <FullPath>PurSupplySheetPrt2.rdl</FullPath>
     </ProjectItem>
     <ProjectItem>
+      <Name>WipStockTakingDiffRpt.rdl</Name>
+      <FullPath>WipStockTakingDiffRpt.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
       <Name>WipStockTakingList.rdl</Name>
       <FullPath>WipStockTakingList.rdl</FullPath>
     </ProjectItem>
@@ -214,16 +238,16 @@
       <FullPath>WipStockTakingList_QRCD.rdl</FullPath>
     </ProjectItem>
     <ProjectItem>
-      <Name>WipStockTakingDiffRpt.rdl</Name>
-      <FullPath>WipStockTakingDiffRpt.rdl</FullPath>
-    </ProjectItem>
-    <ProjectItem>
-      <Name>InvStockTakingRpt.rdl</Name>
-      <FullPath>InvStockTakingRpt.rdl</FullPath>
-    </ProjectItem>
-    <ProjectItem>
       <Name>WipStockTakingRpt.rdl</Name>
       <FullPath>WipStockTakingRpt.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>PurIdentificationTag_BCD.rdl</Name>
+      <FullPath>PurIdentificationTag_BCD.rdl</FullPath>
+    </ProjectItem>
+    <ProjectItem>
+      <Name>PurIdentificationTag_QRCD.rdl</Name>
+      <FullPath>PurIdentificationTag_QRCD.rdl</FullPath>
     </ProjectItem>
   </Reports>
   <Configurations>
